@@ -18,23 +18,6 @@ Tessera is a KWin tiling script that brings the clean, intuitive dwindle tiling 
 -   **Clean Focus Behavior** — Click any window to focus, no stacking restrictions
 -   **Keyboard Shortcuts** — Focus navigation, resizing, window insertion, layout rotation
 
-## How Tessera Differs from Polonium
-
-| Feature             | Polonium                                            | Tessera                                                                |
-| ------------------- | --------------------------------------------------- | ---------------------------------------------------------------------- |
-| **Layout Engines**  | Multiple (BTree, Half, Three Column, Monocle, KWin) | Focused: Dwindle (BTree) only                                          |
-| **Split Behavior**  | Standard alternating                                | Hyprland-style with `preserveSplit`, `forceSplit`, `defaultSplitRatio` |
-| **Border Handling** | Script-controlled (4 modes)                         | Delegated to system decorations                                        |
-| **Focus Behavior**  | Tiled windows kept below (blocks mouse focus)       | Standard focus — click any window                                      |
-| **Codebase**        | Feature-rich, complex                               | Streamlined, ~100 lines removed                                        |
-
-### Why Tessera?
-
--   **Hyprland Users** — Familiar dwindle behavior if you're coming from Hyprland
--   **Simpler** — One layout engine, no border mode complexity
--   **No Focus Issues** — Removed `keepTiledBelow` that prevented clicking tiled windows
--   **System Integration** — Relies on KDE's window decoration settings for corners/borders
-
 ## Installation
 
 ### From Source
