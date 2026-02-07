@@ -9,6 +9,7 @@ import {
 } from "../engine";
 import { Direction } from "../../util/geometry";
 import { InsertionPoint } from "../../util/config";
+import { LayoutDirection } from "kwin-api";
 import BiMap from "mnemonist/bi-map";
 import Queue from "mnemonist/queue";
 
@@ -19,6 +20,9 @@ class TreeNode {
     client: Client | null = null;
     // ratio of child 1 to self
     sizeRatio: number = 0.5;
+    // Hyprland-style: stored split direction (1=horizontal, 2=vertical, 0=not yet determined)
+    // Used for preserve_split to remember the direction when a node was first split
+    splitDirection: number = 0;
     // splits tile
     split(): void {
         // cannot already have children
@@ -83,64 +87,104 @@ export default class BTreeEngine extends TilingEngine {
     buildLayout() {
         // set original tile direction based on rotating layout or not
         this.rootTile = new Tile();
-        this.rootTile.layoutDirection = this.config.rotateLayout ? 2 : 1;
+        const baseDir = this.config.rotateLayout
+            ? LayoutDirection.Vertical
+            : LayoutDirection.Horizontal;
+        this.rootTile.layoutDirection = baseDir;
         // set up
         this.nodeMap = new BiMap();
-        // modify rootTile
-        let queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
+
+        // Track depth for dwindle alternating splits
+        const queue: Queue<{ node: TreeNode; depth: number }> = new Queue();
+        queue.enqueue({ node: this.rootNode, depth: 0 });
         this.nodeMap.set(this.rootNode, this.rootTile);
+
         while (queue.size > 0) {
-            const node = queue.dequeue()!;
+            const { node, depth } = queue.dequeue()!;
             const tile = this.nodeMap.get(node)!;
 
             if (node.client != null) {
                 tile.client = node.client;
             }
             if (node.children != null) {
+                let splitDir: number;
+
+                if (this.config.preserveSplit && node.splitDirection !== 0) {
+                    // Use preserved split direction if enabled and previously set
+                    splitDir = node.splitDirection;
+                } else if (this.config.forceSplit !== 0) {
+                    // Use forced direction if configured
+                    // forceSplit: 1=left/top (vertical), 2=right/bottom (horizontal)
+                    splitDir =
+                        this.config.forceSplit === 1
+                            ? LayoutDirection.Vertical
+                            : LayoutDirection.Horizontal;
+                } else {
+                    // Dwindle: alternate split direction based on depth
+                    splitDir =
+                        depth % 2 === 0
+                            ? baseDir
+                            : baseDir === LayoutDirection.Horizontal
+                              ? LayoutDirection.Vertical
+                              : LayoutDirection.Horizontal;
+                }
+
+                // Store direction for preserve_split feature
+                node.splitDirection = splitDir;
+
+                // Set the tile's layout direction before splitting
+                tile.layoutDirection = splitDir;
                 tile.split();
 
                 this.nodeMap.set(node.children[0], tile.tiles[0]);
                 this.nodeMap.set(node.children[1], tile.tiles[1]);
 
-                tile.tiles[0].relativeSize = node.sizeRatio;
-                tile.tiles[1].relativeSize = 1 - node.sizeRatio;
+                // Apply default split ratio from config
+                const ratio = this.config.defaultSplitRatio;
+                tile.tiles[0].relativeSize =
+                    node.sizeRatio !== 0.5 ? node.sizeRatio : ratio;
+                tile.tiles[1].relativeSize =
+                    node.sizeRatio !== 0.5 ? 1 - node.sizeRatio : 1 - ratio;
 
-                queue.enqueue(node.children[0]);
-                queue.enqueue(node.children[1]);
+                queue.enqueue({ node: node.children[0], depth: depth + 1 });
+                queue.enqueue({ node: node.children[1], depth: depth + 1 });
             }
         }
     }
 
     addClient(client: Client) {
-        let queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.children == null) {
-                if (node.client != null) {
-                    node.split();
-                    if (this.config.insertionPoint == InsertionPoint.Left) {
-                        node.children![0].client = client;
-                        node.children![1].client = node.client;
-                    } else {
-                        node.children![0].client = node.client;
-                        node.children![1].client = client;
-                    }
-                    node.client = null;
-                } else {
-                    node.client = client;
-                }
-                return;
+        // Dwindle behavior: always insert at the deepest leaf node
+        // This creates the characteristic spiral pattern where new windows
+        // alternate split direction into a corner
+
+        // Find the deepest leaf node (rightmost for Right insertion, leftmost for Left)
+        let current: TreeNode = this.rootNode;
+
+        // Navigate to the deepest leaf
+        while (current.children != null) {
+            // For dwindle: always go to the "last" child based on insertion point
+            if (this.config.insertionPoint == InsertionPoint.Left) {
+                current = current.children[0]; // Go left (first child)
             } else {
-                const children = Array.from(node.children);
-                if (this.config.insertionPoint == InsertionPoint.Right) {
-                    children.reverse();
-                }
-                for (const child of children) {
-                    queue.enqueue(child);
-                }
+                current = current.children[1]; // Go right (second child)
             }
+        }
+
+        // Now current is the deepest leaf node
+        if (current.client != null) {
+            // Split this node and add the new client
+            current.split();
+            if (this.config.insertionPoint == InsertionPoint.Left) {
+                current.children![0].client = client;
+                current.children![1].client = current.client;
+            } else {
+                current.children![0].client = current.client;
+                current.children![1].client = client;
+            }
+            current.client = null;
+        } else {
+            // Empty node (root with no windows yet)
+            current.client = client;
         }
     }
 
@@ -178,12 +222,12 @@ export default class BTreeEngine extends TilingEngine {
             // put new client in zeroth child, else put in first child
             let putClientInZero = false;
             if (direction != undefined) {
-                if (tile.layoutDirection == 1) {
+                if (tile.layoutDirection === LayoutDirection.Horizontal) {
                     // horizontal
                     if (!(direction & Direction.Right)) {
                         putClientInZero = true;
                     }
-                } // vertical hopefully
+                } // vertical
                 else {
                     if (direction & Direction.Up) {
                         putClientInZero = true;
@@ -209,5 +253,94 @@ export default class BTreeEngine extends TilingEngine {
                 node.sizeRatio = tile.tiles[0].relativeSize;
             }
         }
+    }
+
+    // Hyprland-style: swap a client with its sibling in the tree
+    swapClients(client1: Client, client2: Client): boolean {
+        let node1: TreeNode | null = null;
+        let node2: TreeNode | null = null;
+
+        // Find both nodes
+        let queue: Queue<TreeNode> = new Queue();
+        queue.enqueue(this.rootNode);
+        while (queue.size > 0) {
+            const node = queue.dequeue()!;
+            if (node.client === client1) node1 = node;
+            if (node.client === client2) node2 = node;
+            if (node1 && node2) break;
+            if (node.children != null) {
+                queue.enqueue(node.children[0]);
+                queue.enqueue(node.children[1]);
+            }
+        }
+
+        if (!node1 || !node2) return false;
+
+        // Swap the clients
+        const temp = node1.client;
+        node1.client = node2.client;
+        node2.client = temp;
+        return true;
+    }
+
+    // Get the sibling client of a given client (for swap with sibling)
+    getSiblingClient(client: Client): Client | null {
+        let queue: Queue<TreeNode> = new Queue();
+        queue.enqueue(this.rootNode);
+        while (queue.size > 0) {
+            const node = queue.dequeue()!;
+            if (node.client === client && node.sibling?.client) {
+                return node.sibling.client;
+            }
+            if (node.children != null) {
+                queue.enqueue(node.children[0]);
+                queue.enqueue(node.children[1]);
+            }
+        }
+        return null;
+    }
+
+    // Hyprland-style: toggle split direction at the parent of a client
+    toggleSplit(client: Client): boolean {
+        const queue: Queue<TreeNode> = new Queue();
+        queue.enqueue(this.rootNode);
+        while (queue.size > 0) {
+            const node = queue.dequeue()!;
+            if (node.client === client && node.parent != null) {
+                // Handle uninitialized splitDirection (0) by setting based on current layout
+                if (node.parent.splitDirection === 0) {
+                    node.parent.splitDirection = LayoutDirection.Horizontal;
+                }
+                // Toggle between horizontal and vertical
+                node.parent.splitDirection =
+                    node.parent.splitDirection === LayoutDirection.Horizontal
+                        ? LayoutDirection.Vertical
+                        : LayoutDirection.Horizontal;
+                return true;
+            }
+            if (node.children != null) {
+                queue.enqueue(node.children[0]);
+                queue.enqueue(node.children[1]);
+            }
+        }
+        return false;
+    }
+
+    // Get all clients in order (for cycling)
+    getAllClients(): Client[] {
+        const clients: Client[] = [];
+        const queue: Queue<TreeNode> = new Queue();
+        queue.enqueue(this.rootNode);
+        while (queue.size > 0) {
+            const node = queue.dequeue()!;
+            if (node.client != null) {
+                clients.push(node.client);
+            }
+            if (node.children != null) {
+                queue.enqueue(node.children[0]);
+                queue.enqueue(node.children[1]);
+            }
+        }
+        return clients;
     }
 }

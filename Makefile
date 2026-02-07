@@ -18,6 +18,9 @@ install: $(PKGFILE)
 		&& kpackagetool6 -t KWin/Script -u $(PKGFILE) \
 		|| kpackagetool6 -t KWin/Script -i $(PKGFILE)
 
+uninstall:
+	kpackagetool6 -t KWin/Script -r $(NAME)
+
 clean: $(PKGDIR)
 	rm -r $(PKGDIR)
 
@@ -34,7 +37,6 @@ stop:
 
 lint:
 	npx eslint "src/**"
-	./scripts/sonarqube.sh
 
 res: $(PKGDIR)
 	cp -f res/metadata.json $(PKGDIR)/
@@ -44,13 +46,13 @@ res: $(PKGDIR)
 	sed -i "s/%VERSION%/$(VERSION)/" $(PKGDIR)/metadata.json
 	sed -i "s/%NAME%/$(NAME)/" $(PKGDIR)/metadata.json
 
-src: polonium.mjs $(PKGDIR)
-	mv -f polonium.mjs $(PKGDIR)/contents/code/main.mjs
+src: tessera.mjs $(PKGDIR)
+	mv -f tessera.mjs $(PKGDIR)/contents/code/main.mjs
 	cp -f src/qml/* $(PKGDIR)/contents/ui/
 
-polonium.mjs:
+tessera.mjs:
 	npm install
-	npx esbuild --bundle src/index.ts --outfile=polonium.mjs --format=esm --platform=neutral
+	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
 
 $(PKGDIR):
 	mkdir -p $(PKGDIR)

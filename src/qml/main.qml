@@ -1,6 +1,6 @@
 // main.qml - Entry point into script
 
-import "../code/main.mjs" as Polonium;
+import "../code/main.mjs" as Tessera;
 import QtQuick;
 import org.kde.kwin;
 
@@ -28,7 +28,7 @@ Item {
             "dbus": dbusLoader.item,
             "osd": osdLoader.item,
         };
-        Polonium.main(api, qmlObjects);
+        Tessera.main(api, qmlObjects);
     }
 
     Loader {

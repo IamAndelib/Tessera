@@ -3,19 +3,19 @@
     "KPlugin": {
         "Authors": [
             {
-                "Email": "vaughanm1@protonmail.com",
-                "Name": "Vaughan Milliman"
+                "Name": "mimisriz"
             }
         ],
-        "Description": "Autotile using KWin 5.27 features",
+        "Description": "Hyprland-style dwindle tiling for KDE Plasma 6",
         "Icon": "preferences-system-windows-effect-presentwindows",
         "Id": "%NAME%",
         "License": "MIT",
-        "Name": "Polonium",
-        "Version": "%VERSION%"
+        "Name": "Tessera",
+        "Version": "%VERSION%",
+        "Website": "https://github.com/mimisriz/tessera"
     },
     "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted",
-    "X-KDE-PluginKeyword": "polonium",
+    "X-KDE-PluginKeyword": "tessera",
     "X-Plasma-API": "declarativescript",
     "X-Plasma-API-Minimum-Version": "6.0",
     "X-Plasma-MainScript": "ui/main.qml"

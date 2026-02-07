@@ -1,6 +1,5 @@
 // config.ts - Static config class
 
-import { EngineType } from "../engine";
 import { KWin } from "kwin-api/qml";
 
 export const enum InsertionPoint {
@@ -9,11 +8,11 @@ export const enum InsertionPoint {
     Active,
 }
 
-export const enum Borders {
-    NoAll,
-    NoTiled,
-    Selected,
-    All,
+// Hyprland-style force split direction
+export const enum ForceSplit {
+    Disabled = 0, // Use dynamic/alternating split
+    LeftTop, // Always split to left/top
+    RightBottom, // Always split to right/bottom
 }
 
 export class Config {
@@ -42,16 +41,19 @@ export class Config {
             .map((x: string) => x.trim());
 
         this.timerDelay = rc("TimerDelay", 10);
-        this.keepTiledBelow = rc("KeepTiledBelow", true);
-        this.borders = rc("Borders", Borders.NoTiled);
+
         this.maximizeSingle = rc("MaximizeSingle", false);
         this.resizeAmount = rc("ResizeAmount", 10);
         this.saveOnTileEdit = rc("SaveOnTileEdit", false);
 
-        this.engineType = rc("EngineType", EngineType.BTree);
         this.insertionPoint = rc("InsertionPoint", InsertionPoint.Left);
         this.rotateLayout = rc("RotateLayout", false);
         this.autoRotateLayout = rc("AutoRotateLayout", true);
+
+        // Hyprland-style dwindle options
+        this.preserveSplit = rc("PreserveSplit", false);
+        this.forceSplit = rc("ForceSplit", ForceSplit.Disabled);
+        this.defaultSplitRatio = rc("DefaultSplitRatio", 50) / 100;
     }
 
     debug: boolean = false;
@@ -67,14 +69,17 @@ export class Config {
     filterCaption: string[] = [];
 
     timerDelay: number = 10;
-    keepTiledBelow: boolean = true;
-    borders: Borders = Borders.NoTiled;
+
     maximizeSingle: boolean = false;
     resizeAmount: number = 10;
     saveOnTileEdit: boolean = false;
 
-    engineType: EngineType = EngineType.BTree;
     insertionPoint: InsertionPoint = InsertionPoint.Left;
-    rotateLayout: boolean = true;
+    rotateLayout: boolean = false;
     autoRotateLayout: boolean = true;
+
+    // Hyprland-style dwindle options
+    preserveSplit: boolean = false; // Keep split directions permanent
+    forceSplit: ForceSplit = ForceSplit.Disabled; // Force split direction
+    defaultSplitRatio: number = 0.5; // Default ratio when splitting (0.1 to 0.9)
 }

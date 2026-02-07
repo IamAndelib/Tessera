@@ -5,7 +5,6 @@ import {
     Tile,
     Client,
     EngineCapability,
-    EngineType,
     EngineConfig,
     TilingEngineFactory,
 } from "../engine";
@@ -21,12 +20,10 @@ import { Controller } from "../controller";
 
 export class TilingDriver {
     engine: TilingEngine;
-    engineType: EngineType;
 
     private logger: Log;
     private config: Config;
     private ctrl: Controller;
-    private engineFactory: TilingEngineFactory;
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
@@ -35,22 +32,23 @@ export class TilingDriver {
 
     get engineConfig(): EngineConfig {
         return {
-            engineType: this.engineType,
             insertionPoint: this.engine.config.insertionPoint,
             rotateLayout: this.engine.config.rotateLayout,
             engineSettings: this.engine.engineSettings,
+            // Hyprland-style dwindle options
+            preserveSplit: this.engine.config.preserveSplit,
+            forceSplit: this.engine.config.forceSplit,
+            defaultSplitRatio: this.engine.config.defaultSplitRatio,
         };
     }
 
     set engineConfig(config: EngineConfig) {
-        if (config.engineType != this.engineType) {
-            this.switchEngine(
-                this.engineFactory.newEngine(config),
-                config.engineType,
-            );
-        }
         this.engine.config.insertionPoint = config.insertionPoint;
         this.engine.config.rotateLayout = config.rotateLayout;
+        // Hyprland-style dwindle options
+        this.engine.config.preserveSplit = config.preserveSplit;
+        this.engine.config.forceSplit = config.forceSplit;
+        this.engine.config.defaultSplitRatio = config.defaultSplitRatio;
         // if it needs to be reset, enginesettings will be an empty object
         if (config.engineSettings != undefined) {
             this.engine.engineSettings = config.engineSettings;
@@ -64,39 +62,13 @@ export class TilingDriver {
 
     constructor(
         engine: TilingEngine,
-        engineType: EngineType,
         ctrl: Controller,
-        engineFactory: TilingEngineFactory,
+        _engineFactory: TilingEngineFactory, // kept for API compatibility
     ) {
         this.engine = engine;
-        this.engineType = engineType;
         this.ctrl = ctrl;
-        this.engineFactory = engineFactory;
         this.logger = ctrl.logger;
         this.config = ctrl.config;
-    }
-
-    private switchEngine(engine: TilingEngine, engineType: EngineType): void {
-        this.engine = engine;
-        this.engineType = engineType;
-        try {
-            for (const window of this.clients.keys()) {
-                if (!this.untiledWindows.includes(window)) {
-                    // if untiled by default then dont try to tile windows when switching
-                    if (
-                        this.engine.engineCapability &
-                        EngineCapability.UntiledByDefault
-                    ) {
-                        this.untiledWindows.push(window);
-                    } else {
-                        this.engine.addClient(this.clients.get(window)!);
-                    }
-                }
-            }
-            this.engine.buildLayout();
-        } catch (e) {
-            this.logger.error(e);
-        }
     }
 
     buildLayout(rootTile: Kwin.Tile): void {
@@ -139,7 +111,7 @@ export class TilingDriver {
             const kwinTile = this.tiles.inverse.get(tile)!;
             this.ctrl.managedTiles.add(kwinTile);
             kwinTile.layoutDirection = tile.layoutDirection;
-            // 1 is vertical, 2 is horizontal
+            // LayoutDirection: 1=Horizontal, 2=Vertical (per kwin-api)
             const horizontal =
                 kwinTile.layoutDirection == Kwin.LayoutDirection.Horizontal;
             const tilesLen = tile.tiles.length;
@@ -191,6 +163,10 @@ export class TilingDriver {
                 window.fullScreen = false;
                 window.setMaximize(false, false);
                 extensions.isSingleMaximized = false;
+                // Clear tile first to force change detection for effects like KDE-Rounded-Corners
+                if (window.tile !== kwinTile) {
+                    window.tile = null;
+                }
                 window.tile = kwinTile;
                 extensions.lastTiledLocation = GPoint.centerOfRect(
                     kwinTile.absoluteGeometry,
@@ -293,12 +269,6 @@ export class TilingDriver {
     addWindow(window: Kwin.Window): void {
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
-            if (
-                this.engine.engineCapability & EngineCapability.UntiledByDefault
-            ) {
-                this.untiledWindows.push(window);
-                return;
-            }
         }
         let index = this.untiledWindows.indexOf(window);
         if (index >= 0) {
@@ -433,27 +403,6 @@ export class TilingDriver {
                 highestTile.relativeSize =
                     kwinTile.relativeGeometry.height /
                     kwinTile.parent.relativeGeometry.height;
-            }
-            // if the layout is mutable (tiles can be created/destroyed) then change it. really only for kwin layout
-            if (
-                (this.engine.engineCapability &
-                    EngineCapability.TilesMutable) ==
-                EngineCapability.TilesMutable
-            ) {
-                // destroy ones that dont exist anymore
-                for (const child of tile.tiles) {
-                    if (this.tiles.inverse.get(child) == null) {
-                        this.tiles.inverse.delete(child);
-                        child.remove();
-                    }
-                }
-                // create ones that do (and arent registered)
-                for (const child of kwinTile.tiles) {
-                    if (!this.tiles.has(child)) {
-                        const newTile = tile.addChild();
-                        this.tiles.set(child, newTile);
-                    }
-                }
             }
             for (const child of kwinTile.tiles) {
                 queue.enqueue(child);

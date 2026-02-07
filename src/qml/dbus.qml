@@ -23,36 +23,36 @@ Item {
     DBusCall {
         id: getSettings;
         
-        service: "org.polonium.SettingSaver";
+        service: "org.tessera.SettingSaver";
         path: "/saver";
-        dbusInterface: "org.polonium.SettingSaver";
+        dbusInterface: "org.tessera.SettingSaver";
         method: "GetSettings";
     }
 
     DBusCall {
         id: setSettings;
         
-        service: "org.polonium.SettingSaver";
+        service: "org.tessera.SettingSaver";
         path: "/saver";
-        dbusInterface: "org.polonium.SettingSaver";
+        dbusInterface: "org.tessera.SettingSaver";
         method: "SetSettings";
     }
 
     DBusCall {
         id: exists;
         
-        service: "org.polonium.SettingSaver";
+        service: "org.tessera.SettingSaver";
         path: "/saver";
-        dbusInterface: "org.polonium.SettingSaver";
+        dbusInterface: "org.tessera.SettingSaver";
         method: "Exists";
     }
     
     DBusCall {
         id: removeSettings;
         
-        service: "org.polonium.SettingSaver";
+        service: "org.tessera.SettingSaver";
         path: "/saver";
-        dbusInterface: "org.polonium.SettingSaver";
+        dbusInterface: "org.tessera.SettingSaver";
         method: "RemoveSettings";
     }
 }

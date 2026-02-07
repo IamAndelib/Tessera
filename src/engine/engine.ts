@@ -13,16 +13,16 @@ import {
 export interface EngineConfig {
     insertionPoint: InsertionPoint;
     rotateLayout: boolean;
+    // Hyprland-style dwindle options
+    preserveSplit: boolean; // Keep split directions permanent
+    forceSplit: number; // Force split direction (0=disabled, 1=left/top, 2=right/bottom)
+    defaultSplitRatio: number; // Default ratio when splitting (0.1 to 0.9)
 }
 
 export const enum EngineCapability {
     None = 0,
     // whether the driver should translate the rotation for the engine when inserting clients
     TranslateRotation = 1,
-    // whether the amount of tiles can be changed
-    TilesMutable = 2,
-    // whether tiles should be untiled or not by default when added
-    UntiledByDefault = 4,
 }
 
 // custom engine settings if the engine wants to use them
@@ -138,8 +138,11 @@ export class Tile implements ITile {
             parent.tiles.splice(parent.tiles.indexOf(this), 1);
         }
         const childrenLen = parent.tiles.length;
-        for (const child of parent.tiles) {
-            child.relativeSize *= (childrenLen + 1) / childrenLen;
+        // Guard against division by zero
+        if (childrenLen > 0) {
+            for (const child of parent.tiles) {
+                child.relativeSize *= (childrenLen + 1) / childrenLen;
+            }
         }
         this.tiles = [];
         this.client = null;
@@ -193,4 +196,10 @@ export abstract class TilingEngine implements ITilingEngine {
     public abstract putClientInTile(c: Client, t: Tile, d?: Direction): void;
     // called after subtiles are edited (ex. sizes) so the engine can update them internally if needed
     public abstract regenerateLayout(): void;
+
+    // Hyprland-style methods
+    public abstract swapClients(client1: Client, client2: Client): boolean;
+    public abstract getSiblingClient(client: Client): Client | null;
+    public abstract toggleSplit(client: Client): boolean;
+    public abstract getAllClients(): Client[];
 }

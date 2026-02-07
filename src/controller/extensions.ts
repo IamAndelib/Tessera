@@ -15,11 +15,9 @@ export class WorkspaceExtensions {
     private currentDesktop: VirtualDesktop;
     private workspace: Workspace;
     private currentActiveWindow: Window | null = null;
-    //private logger: Log;
 
     constructor(workspace: Workspace) {
         this.workspace = workspace;
-        //this.logger = logger;
         this.currentActivity = this.workspace.currentActivity;
         this.currentDesktop = this.workspace.currentDesktop;
         this.lastActivity = this.currentActivity;

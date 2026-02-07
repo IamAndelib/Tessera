@@ -1,10 +1,10 @@
-// shortcuts.qml - Shortcuts
+// shortcuts.qml - Keyboard Shortcuts
 
 import QtQuick;
 import org.kde.kwin;
 
 Item {
-    id: dbus;
+    id: shortcuts;
     
     function getRetileWindow() {
         return retileWindow;
@@ -12,8 +12,8 @@ Item {
     ShortcutHandler {
         id: retileWindow;
         
-        name: "PoloniumRetileWindow";
-        text: "Polonium: Retile Window";
+        name: "TesseraRetileWindow";
+        text: "Tessera: Tile/Untile Window";
         sequence: "Meta+Shift+Space";
     }
     
@@ -23,8 +23,8 @@ Item {
     ShortcutHandler {
         id: openSettings;
         
-        name: "PoloniumOpenSettings";
-        text: "Polonium: Open Settings Dialog";
+        name: "TesseraOpenSettings";
+        text: "Tessera: Open Settings";
         sequence: "Meta+\\";
     }
     
@@ -34,8 +34,8 @@ Item {
     ShortcutHandler {
         id: focusAbove;
         
-        name: "PoloniumFocusAbove";
-        text: "Polonium: Focus Above";
+        name: "TesseraFocusAbove";
+        text: "Tessera: Focus Above";
         sequence: "Meta+K";
     }
 
@@ -45,8 +45,8 @@ Item {
     ShortcutHandler {
         id: focusBelow;
         
-        name: "PoloniumFocusBelow";
-        text: "Polonium: Focus Below";
+        name: "TesseraFocusBelow";
+        text: "Tessera: Focus Below";
         sequence: "Meta+J";
     }
 
@@ -56,8 +56,8 @@ Item {
     ShortcutHandler {
         id: focusLeft;
         
-        name: "PoloniumFocusLeft";
-        text: "Polonium: Focus Left";
+        name: "TesseraFocusLeft";
+        text: "Tessera: Focus Left";
         sequence: "Meta+H";
     }
 
@@ -67,8 +67,8 @@ Item {
     ShortcutHandler {
         id: focusRight;
         
-        name: "PoloniumFocusRight";
-        text: "Polonium: Focus Right";
+        name: "TesseraFocusRight";
+        text: "Tessera: Focus Right";
         sequence: "Meta+L";
     }
     
@@ -78,8 +78,8 @@ Item {
     ShortcutHandler {
         id: insertAbove;
         
-        name: "PoloniumInsertAbove";
-        text: "Polonium: Insert Above";
+        name: "TesseraInsertAbove";
+        text: "Tessera: Move Window Up";
         sequence: "Meta+Shift+K";
     }
 
@@ -89,8 +89,8 @@ Item {
     ShortcutHandler {
         id: insertBelow;
         
-        name: "PoloniumInsertBelow";
-        text: "Polonium: Insert Below";
+        name: "TesseraInsertBelow";
+        text: "Tessera: Move Window Down";
         sequence: "Meta+Shift+J";
     }
 
@@ -100,8 +100,8 @@ Item {
     ShortcutHandler {
         id: insertLeft;
         
-        name: "PoloniumInsertLeft";
-        text: "Polonium: Insert Left";
+        name: "TesseraInsertLeft";
+        text: "Tessera: Move Window Left";
         sequence: "Meta+Shift+H";
     }
 
@@ -111,8 +111,8 @@ Item {
     ShortcutHandler {
         id: insertRight;
         
-        name: "PoloniumInsertRight";
-        text: "Polonium: Insert Right";
+        name: "TesseraInsertRight";
+        text: "Tessera: Move Window Right";
         sequence: "Meta+Shift+L";
     }
 
@@ -122,8 +122,8 @@ Item {
     ShortcutHandler {
         id: resizeAbove;
         
-        name: "PoloniumResizeAbove";
-        text: "Polonium: Resize Above";
+        name: "TesseraResizeAbove";
+        text: "Tessera: Resize Up";
         sequence: "Meta+Ctrl+K";
     }
 
@@ -133,8 +133,8 @@ Item {
     ShortcutHandler {
         id: resizeBelow;
         
-        name: "PoloniumResizeBelow";
-        text: "Polonium: Resize Below";
+        name: "TesseraResizeBelow";
+        text: "Tessera: Resize Down";
         sequence: "Meta+Ctrl+J";
     }
 
@@ -144,8 +144,8 @@ Item {
     ShortcutHandler {
         id: resizeLeft;
         
-        name: "PoloniumResizeLeft";
-        text: "Polonium: Resize Left";
+        name: "TesseraResizeLeft";
+        text: "Tessera: Resize Left";
         sequence: "Meta+Ctrl+H";
     }
 
@@ -155,8 +155,8 @@ Item {
     ShortcutHandler {
         id: resizeRight;
         
-        name: "PoloniumResizeRight";
-        text: "Polonium: Resize Right";
+        name: "TesseraResizeRight";
+        text: "Tessera: Resize Right";
         sequence: "Meta+Ctrl+L";
     }
 
@@ -166,75 +166,97 @@ Item {
     ShortcutHandler {
         id: rotateLayout;
 
-        name: "PoloniumRotateLayout";
-        text: "Polonium: Rotate Layout";
-        sequence: "";
-    }
-    
-    function getCycleEngine() {
-        return cycleEngine;
-    }
-    ShortcutHandler {
-        id: cycleEngine;
-        
-        name: "PoloniumCycleEngine";
-        text: "Polonium: Cycle Engine";
-        sequence: "Meta+|";
-    }
-    
-    // no default shortcuts for specific engines
-    function getSwitchBTree() {
-        return switchBTree;
-    }
-    ShortcutHandler {
-        id: switchBTree;
-        
-        name: "PoloniumSwitchBTree";
-        text: "Polonium: Use Binary Tree Engine";
+        name: "TesseraRotateLayout";
+        text: "Tessera: Toggle Vertical-First";
         sequence: "";
     }
 
-    function getSwitchHalf() {
-        return switchHalf;
+    // Hyprland-style shortcuts
+    function getSwapWithSibling() {
+        return swapWithSibling;
     }
     ShortcutHandler {
-        id: switchHalf;
-        
-        name: "PoloniumSwitchHalf";
-        text: "Polonium: Use Half Engine";
-        sequence: "";
+        id: swapWithSibling;
+
+        name: "TesseraSwapWithSibling";
+        text: "Tessera: Swap with Sibling";
+        sequence: "Meta+S";
     }
-    
-    function getSwitchThreeColumn() {
-        return switchThreeColumn;
-    }
-    ShortcutHandler {
-        id: switchThreeColumn;
-        
-        name: "PoloniumSwitchThreeColumn";
-        text: "Polonium: Use Three Column Engine";
-        sequence: "";
-    }
-    
-    function getSwitchMonocle() {
-        return switchMonocle;
+
+    function getSwapAbove() {
+        return swapAbove;
     }
     ShortcutHandler {
-        id: switchMonocle;
-        
-        name: "PoloniumSwitchMonocle";
-        text: "Polonium: Use Monocle Engine";
-        sequence: "";
+        id: swapAbove;
+
+        name: "TesseraSwapAbove";
+        text: "Tessera: Swap Up";
+        sequence: "Meta+Alt+K";
     }
-    
-    function getSwitchKwin() {
-        return switchKwin;
+
+    function getSwapBelow() {
+        return swapBelow;
     }
     ShortcutHandler {
-        id: switchKwin;
-        
-        name: "PoloniumSwitchKwin";
-        text: "Polonium: Use KWin Engine";
-        sequence: "";
+        id: swapBelow;
+
+        name: "TesseraSwapBelow";
+        text: "Tessera: Swap Down";
+        sequence: "Meta+Alt+J";
+    }
+
+    function getSwapLeft() {
+        return swapLeft;
+    }
+    ShortcutHandler {
+        id: swapLeft;
+
+        name: "TesseraSwapLeft";
+        text: "Tessera: Swap Left";
+        sequence: "Meta+Alt+H";
+    }
+
+    function getSwapRight() {
+        return swapRight;
+    }
+    ShortcutHandler {
+        id: swapRight;
+
+        name: "TesseraSwapRight";
+        text: "Tessera: Swap Right";
+        sequence: "Meta+Alt+L";
+    }
+
+    function getToggleSplit() {
+        return toggleSplit;
+    }
+    ShortcutHandler {
+        id: toggleSplit;
+
+        name: "TesseraToggleSplit";
+        text: "Tessera: Toggle Split Direction";
+        sequence: "Meta+T";
+    }
+
+    function getCycleNext() {
+        return cycleNext;
+    }
+    ShortcutHandler {
+        id: cycleNext;
+
+        name: "TesseraCycleNext";
+        text: "Tessera: Cycle Windows Next";
+        sequence: "Meta+Tab";
+    }
+
+    function getCyclePrev() {
+        return cyclePrev;
+    }
+    ShortcutHandler {
+        id: cyclePrev;
+
+        name: "TesseraCyclePrev";
+        text: "Tessera: Cycle Windows Previous";
+        sequence: "Meta+Shift+Tab";
     }
 }

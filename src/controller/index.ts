@@ -52,10 +52,10 @@ export class Controller {
 
         this.config = new Config(this.kwinApi);
         this.logger = new Log(this.config, this.qmlObjects.root);
-        this.logger.info("Polonium started!");
+        this.logger.info("Tessera started!");
         if (!this.config.debug) {
             this.logger.info(
-                "Polonium debug is DISABLED! Enable it and restart KWin before sending logs!",
+                "Tessera debug is DISABLED! Enable it and restart KWin before sending logs!",
             );
         }
         this.logger.debug("Config is", JSON.stringify(this.config));

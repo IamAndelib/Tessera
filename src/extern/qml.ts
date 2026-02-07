@@ -58,12 +58,15 @@ export interface Shortcuts {
 
     getRotateLayout(): ShortcutHandler;
 
-    getCycleEngine(): ShortcutHandler;
-    getSwitchBTree(): ShortcutHandler;
-    getSwitchHalf(): ShortcutHandler;
-    getSwitchThreeColumn(): ShortcutHandler;
-    getSwitchMonocle(): ShortcutHandler;
-    getSwitchKwin(): ShortcutHandler;
+    // Hyprland-style shortcuts
+    getSwapWithSibling(): ShortcutHandler;
+    getSwapAbove(): ShortcutHandler;
+    getSwapBelow(): ShortcutHandler;
+    getSwapLeft(): ShortcutHandler;
+    getSwapRight(): ShortcutHandler;
+    getToggleSplit(): ShortcutHandler;
+    getCycleNext(): ShortcutHandler;
+    getCyclePrev(): ShortcutHandler;
 }
 
 export interface Osd {

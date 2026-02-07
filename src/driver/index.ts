@@ -7,7 +7,7 @@ import { QTimer } from "kwin-api/qt";
 import { Direction } from "../util/geometry";
 import { Controller } from "../controller";
 import { Log } from "../util/log";
-import { Config, Borders } from "../util/config";
+import { Config } from "../util/config";
 import { Desktop } from "../controller/desktop";
 
 export class DriverManager {
@@ -53,23 +53,30 @@ export class DriverManager {
                     "Creating new engine for desktop",
                     desktopString,
                 );
-                let engineType = this.config.engineType;
                 let rotateLayout = this.config.rotateLayout;
-                if (this.config.autoRotateLayout &&
-                    desktop.output.geometry.width < desktop.output.geometry.height) {
-                    this.logger.debug("Auto rotate layout for desktop", desktopString);
+                if (
+                    this.config.autoRotateLayout &&
+                    desktop.output.geometry.width <
+                        desktop.output.geometry.height
+                ) {
+                    this.logger.debug(
+                        "Auto rotate layout for desktop",
+                        desktopString,
+                    );
                     rotateLayout = !rotateLayout;
                 }
                 const config: EngineConfig = {
-                    engineType: engineType,
                     insertionPoint: this.config.insertionPoint,
                     rotateLayout: rotateLayout,
                     engineSettings: {},
+                    // Hyprland-style dwindle options
+                    preserveSplit: this.config.preserveSplit,
+                    forceSplit: this.config.forceSplit,
+                    defaultSplitRatio: this.config.defaultSplitRatio,
                 };
                 const engine = this.engineFactory.newEngine(config);
                 const driver = new TilingDriver(
                     engine,
-                    engineType,
                     this.ctrl,
                     this.engineFactory,
                 );
@@ -146,7 +153,11 @@ export class DriverManager {
             this.ctrl.workspace.currentActivity,
             output,
         );
-        const driver = this.drivers.get(desktop.toString())!;
+        const driver = this.drivers.get(desktop.toString());
+        if (!driver) {
+            this.logger.error("No driver for desktop", desktop.toString());
+            return;
+        }
         driver.regenerateLayout(tile);
         if (this.config.saveOnTileEdit) {
             this.ctrl.dbusManager.setSettings(
@@ -159,37 +170,12 @@ export class DriverManager {
 
     private applyTiled(window: Window): void {
         this.ctrl.windowExtensions.get(window)!.isTiled = true;
-        if (this.config.keepTiledBelow) {
-            window.keepBelow = true;
-        }
-        if (
-            this.config.borders == Borders.NoTiled ||
-            this.config.borders == Borders.Selected
-        ) {
-            if (
-                !(
-                    this.config.borders == Borders.Selected &&
-                    this.ctrl.workspace.activeWindow == window
-                )
-            ) {
-                window.noBorder = true;
-            }
-        }
     }
 
     private applyUntiled(window: Window): void {
         const extensions = this.ctrl.windowExtensions.get(window)!;
         extensions.isTiled = false;
         extensions.isSingleMaximized = false;
-        if (this.config.keepTiledBelow) {
-            window.keepBelow = false;
-        }
-        if (
-            this.config.borders == Borders.NoTiled ||
-            this.config.borders == Borders.Selected
-        ) {
-            window.noBorder = false;
-        }
     }
 
     rebuildLayout(output?: Output): void {
@@ -208,7 +194,11 @@ export class DriverManager {
         }
         this.logger.debug("Rebuilding layout for desktops", desktops);
         for (const desktop of desktops) {
-            const driver = this.drivers.get(desktop.toString())!;
+            const driver = this.drivers.get(desktop.toString());
+            if (!driver) {
+                this.logger.error("No driver for desktop", desktop.toString());
+                continue;
+            }
             // move this above to correctly set isTiled
             for (const window of driver.clients.keys()) {
                 if (!driver.untiledWindows.includes(window)) {
@@ -258,7 +248,10 @@ export class DriverManager {
             desktops,
         );
         for (const desktop of desktops) {
-            this.drivers.get(desktop.toString())!.untileWindow(window);
+            const driver = this.drivers.get(desktop.toString());
+            if (driver) {
+                driver.untileWindow(window);
+            }
         }
     }
 
@@ -274,7 +267,10 @@ export class DriverManager {
             desktops,
         );
         for (const desktop of desktops) {
-            this.drivers.get(desktop.toString())!.addWindow(window);
+            const driver = this.drivers.get(desktop.toString());
+            if (driver) {
+                driver.addWindow(window);
+            }
         }
     }
 
@@ -290,7 +286,10 @@ export class DriverManager {
             desktops,
         );
         for (const desktop of desktops) {
-            this.drivers.get(desktop.toString())!.removeWindow(window);
+            const driver = this.drivers.get(desktop.toString());
+            if (driver) {
+                driver.removeWindow(window);
+            }
         }
     }
 
@@ -307,19 +306,27 @@ export class DriverManager {
             "on desktop",
             desktop,
         );
-        this.drivers
-            .get(desktop.toString())!
-            .putWindowInTile(window, tile, direction);
+        const driver = this.drivers.get(desktop.toString());
+        if (!driver) {
+            this.logger.error("No driver for desktop", desktop.toString());
+            return;
+        }
+        driver.putWindowInTile(window, tile, direction);
     }
 
-    getEngineConfig(desktop: Desktop): EngineConfig {
+    getEngineConfig(desktop: Desktop): EngineConfig | null {
         this.logger.debug("Getting engine config for desktop", desktop);
-        return this.drivers.get(desktop.toString())!.engineConfig;
+        const driver = this.drivers.get(desktop.toString());
+        return driver?.engineConfig ?? null;
     }
 
     setEngineConfig(desktop: Desktop, config: EngineConfig) {
         this.logger.debug("Setting engine config for desktop", desktop);
-        const driver = this.drivers.get(desktop.toString())!;
+        const driver = this.drivers.get(desktop.toString());
+        if (!driver) {
+            this.logger.error("No driver for desktop", desktop.toString());
+            return;
+        }
         driver.engineConfig = config;
         this.ctrl.dbusManager.setSettings(
             desktop.toString(),
@@ -331,18 +338,28 @@ export class DriverManager {
     removeEngineConfig(desktop: Desktop): void {
         this.logger.debug("Removing engine config for desktop", desktop);
         const config: EngineConfig = {
-            engineType: this.config.engineType,
             insertionPoint: this.config.insertionPoint,
             rotateLayout: this.config.rotateLayout,
             engineSettings: {},
+            preserveSplit: this.config.preserveSplit,
+            forceSplit: this.config.forceSplit,
+            defaultSplitRatio: this.config.defaultSplitRatio,
         };
-        this.drivers.get(desktop.toString())!.engineConfig = config;
+        const driver = this.drivers.get(desktop.toString());
+        if (driver) {
+            driver.engineConfig = config;
+        }
         this.ctrl.dbusManager.removeSettings(desktop.toString());
         this.rebuildLayout(desktop.output);
     }
 
+    // Get the driver for a specific desktop (used by shortcuts for Hyprland-style operations)
+    getDriver(desktop: Desktop): TilingDriver | undefined {
+        return this.drivers.get(desktop.toString());
+    }
+
     quitFullScreen(output: Output): void {
-        this.ctrl.workspace.windows.forEach(window => {
+        this.ctrl.workspace.windows.forEach((window) => {
             if (window.output == output && window.fullScreen) {
                 window.fullScreen = false;
             }

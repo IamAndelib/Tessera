@@ -3,7 +3,7 @@
 import { Window } from "kwin-api";
 import { Controller } from "../";
 import { Log } from "../../util/log";
-import { Config, Borders } from "../../util/config";
+import { Config } from "../../util/config";
 import { WindowExtensions } from "../extensions";
 
 export class WorkspaceActions {
@@ -27,7 +27,6 @@ export class WorkspaceActions {
         workspace.currentDesktopChanged.connect(
             this.currentDesktopChange.bind(this),
         );
-        workspace.windowActivated.connect(this.windowActivated.bind(this));
     }
 
     doTileWindow(c: Window): boolean {
@@ -66,9 +65,6 @@ export class WorkspaceActions {
             this.logger.debug("Not tiling window", window.resourceClass);
             return;
         }
-        if (this.config.borders == Borders.NoAll) {
-            window.noBorder = true;
-        }
         this.logger.debug("Window", window.resourceClass, "added");
         this.ctrl.driverManager.addWindow(window);
         this.ctrl.driverManager.quitFullScreen(window.output);
@@ -78,7 +74,7 @@ export class WorkspaceActions {
     windowRemoved(window: Window): void {
         this.logger.debug("Window", window.resourceClass, "removed");
         this.ctrl.driverManager.removeWindow(window);
-        if (this.ctrl.windowExtensions.get(window)!.isTiled) {
+        if (this.ctrl.windowExtensions.get(window)?.isTiled) {
             this.ctrl.driverManager.rebuildLayout();
         }
         this.ctrl.windowExtensions.delete(window);
@@ -108,20 +104,5 @@ export class WorkspaceActions {
             }
         }
         this.ctrl.driverManager.rebuildLayout();
-    }
-
-    windowActivated(window: Window) {
-        // _window is null??? kwin fix your api
-        if (this.config.borders == Borders.Selected && window != null) {
-            window.noBorder = false;
-            const lastActiveWindow =
-                this.ctrl.workspaceExtensions.lastActiveWindow;
-            if (
-                lastActiveWindow != null &&
-                this.ctrl.windowExtensions.get(lastActiveWindow)!.isTiled
-            ) {
-                lastActiveWindow.noBorder = true;
-            }
-        }
     }
 }

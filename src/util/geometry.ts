@@ -113,7 +113,7 @@ export class GRect implements QRect {
     }
 
     directionFromPoint(p: QPoint): Direction {
-        // very complex, copied this in from old polonium
+        // very complex, determines direction quadrant from point position
         const relativePoint = new GPoint({
             x: p.x - this.x,
             y: p.y - this.y,
@@ -197,7 +197,7 @@ export class GRect implements QRect {
             this.x +
             ", " +
             this.y +
-            +", " +
+            ", " +
             this.width +
             ", " +
             this.height +

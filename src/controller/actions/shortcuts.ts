@@ -6,7 +6,6 @@ import { GPoint, Direction as GDirection } from "../../util/geometry";
 import { QPoint } from "kwin-api/qt";
 import { Log } from "../../util/log";
 import { Config } from "../../util/config";
-import { EngineType } from "../../engine";
 
 const enum Direction {
     Above,
@@ -15,72 +14,35 @@ const enum Direction {
     Left,
 }
 
-function pointAbove(window: Window): GPoint | null {
-    if (window.tile == null) {
-        return null;
-    }
-    const geometry = window.frameGeometry;
-    const coordOffset = 1 + window.tile.padding;
-    const x = geometry.x + 1;
-    const y = geometry.y - coordOffset;
-    return new GPoint({
-        x: x,
-        y: y,
-    });
-}
-
-function pointBelow(window: Window): GPoint | null {
-    if (window.tile == null) {
-        return null;
-    }
-    const geometry = window.frameGeometry;
-    const coordOffset = 1 + geometry.height + window.tile.padding;
-    const x = geometry.x + 1;
-    const y = geometry.y + coordOffset;
-    return new GPoint({
-        x: x,
-        y: y,
-    });
-}
-
-function pointLeft(window: Window): GPoint | null {
-    if (window.tile == null) {
-        return null;
-    }
-    const geometry = window.frameGeometry;
-    let coordOffset = 1 + window.tile.padding;
-    let x = geometry.x - coordOffset;
-    let y = geometry.y + 1;
-    return new GPoint({
-        x: x,
-        y: y,
-    });
-}
-
-function pointRight(window: Window): GPoint | null {
-    if (window.tile == null) {
-        return null;
-    }
-    const geometry = window.frameGeometry;
-    let coordOffset = 1 + geometry.width + window.tile.padding;
-    let x = geometry.x + coordOffset;
-    let y = geometry.y + 1;
-    return new GPoint({
-        x: x,
-        y: y,
-    });
-}
-
 function pointInDirection(window: Window, direction: Direction): GPoint | null {
+    if (window.tile == null) {
+        return null;
+    }
+
+    const geometry = window.frameGeometry;
+    const padding = window.tile.padding;
+
     switch (direction) {
         case Direction.Above:
-            return pointAbove(window);
+            return new GPoint({
+                x: geometry.x + 1,
+                y: geometry.y - 1 - padding,
+            });
         case Direction.Below:
-            return pointBelow(window);
+            return new GPoint({
+                x: geometry.x + 1,
+                y: geometry.y + geometry.height + 1 + padding,
+            });
         case Direction.Left:
-            return pointLeft(window);
+            return new GPoint({
+                x: geometry.x - 1 - padding,
+                y: geometry.y + 1,
+            });
         case Direction.Right:
-            return pointRight(window);
+            return new GPoint({
+                x: geometry.x + geometry.width + 1 + padding,
+                y: geometry.y + 1,
+            });
         default:
             return null;
     }
@@ -99,11 +61,6 @@ function gdirectionFromDirection(direction: Direction): GDirection {
     }
 }
 
-function engineName(engineType: EngineType): string {
-    const engines = ["Binary Tree", "Half", "Three Column", "Monocle", "KWin"];
-    return engines[engineType];
-}
-
 export class ShortcutManager {
     private ctrl: Controller;
     private logger: Log;
@@ -113,7 +70,7 @@ export class ShortcutManager {
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
         this.config = ctrl.config;
-        let shortcuts = ctrl.qmlObjects.shortcuts;
+        const shortcuts = ctrl.qmlObjects.shortcuts;
         shortcuts
             .getRetileWindow()
             .activated.connect(this.retileWindow.bind(this));
@@ -164,31 +121,37 @@ export class ShortcutManager {
             .getRotateLayout()
             .activated.connect(this.rotateLayout.bind(this));
 
+        // Hyprland-style shortcuts
         shortcuts
-            .getCycleEngine()
-            .activated.connect(this.cycleEngine.bind(this));
-
+            .getSwapWithSibling()
+            .activated.connect(this.swapWithSibling.bind(this));
         shortcuts
-            .getSwitchBTree()
-            .activated.connect(this.setEngine.bind(this, EngineType.BTree));
-
-        shortcuts
-            .getSwitchHalf()
-            .activated.connect(this.setEngine.bind(this, EngineType.Half));
-
-        shortcuts
-            .getSwitchThreeColumn()
+            .getSwapAbove()
             .activated.connect(
-                this.setEngine.bind(this, EngineType.ThreeColumn),
+                this.swapInDirection.bind(this, Direction.Above),
             );
-
         shortcuts
-            .getSwitchMonocle()
-            .activated.connect(this.setEngine.bind(this, EngineType.Monocle));
-
+            .getSwapBelow()
+            .activated.connect(
+                this.swapInDirection.bind(this, Direction.Below),
+            );
         shortcuts
-            .getSwitchKwin()
-            .activated.connect(this.setEngine.bind(this, EngineType.Kwin));
+            .getSwapLeft()
+            .activated.connect(this.swapInDirection.bind(this, Direction.Left));
+        shortcuts
+            .getSwapRight()
+            .activated.connect(
+                this.swapInDirection.bind(this, Direction.Right),
+            );
+        shortcuts
+            .getToggleSplit()
+            .activated.connect(this.toggleSplit.bind(this));
+        shortcuts
+            .getCycleNext()
+            .activated.connect(this.cycleNext.bind(this, false));
+        shortcuts
+            .getCyclePrev()
+            .activated.connect(this.cycleNext.bind(this, true));
     }
 
     retileWindow(): void {
@@ -212,6 +175,7 @@ export class ShortcutManager {
             const config = this.ctrl.driverManager.getEngineConfig(
                 this.ctrl.desktopFactory.createDefaultDesktop(),
             );
+            if (!config) return;
             settings.setSettings(config);
             settings.show();
         }
@@ -244,7 +208,7 @@ export class ShortcutManager {
         if (tile.windows.length == 0) {
             return;
         }
-        let newWindow = tile.windows[0];
+        const newWindow = tile.windows[0];
         this.logger.debug("Focusing", newWindow.resourceClass);
         this.ctrl.workspace.activeWindow = newWindow;
     }
@@ -323,30 +287,142 @@ export class ShortcutManager {
         }
     }
 
-    setEngine(engineType: EngineType): void {
-        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
-        const engineConfig = this.ctrl.driverManager.getEngineConfig(desktop);
-        engineConfig.engineType = engineType;
-        this.ctrl.qmlObjects.osd.show(engineName(engineType));
-        this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
-    }
-
-    cycleEngine(): void {
-        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
-        const engineConfig = this.ctrl.driverManager.getEngineConfig(desktop);
-        let engineType = engineConfig.engineType;
-        engineType += 1;
-        engineType %= EngineType._loop;
-        engineConfig.engineType = engineType;
-        this.ctrl.qmlObjects.osd.show(engineName(engineType));
-        this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
-    }
-
     rotateLayout(): void {
         const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
         const engineConfig = this.ctrl.driverManager.getEngineConfig(desktop);
+        if (!engineConfig) return;
         engineConfig.rotateLayout = !engineConfig.rotateLayout;
-        this.ctrl.qmlObjects.osd.show("Rotate Layout: " + engineConfig.rotateLayout);
+        this.ctrl.qmlObjects.osd.show(
+            "Vertical-First: " + engineConfig.rotateLayout,
+        );
         this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
+    }
+
+    // Hyprland-style: swap focused window with its sibling
+    swapWithSibling(): void {
+        const window = this.ctrl.workspace.activeWindow;
+        if (
+            window == null ||
+            !this.ctrl.windowExtensions.get(window)?.isTiled
+        ) {
+            return;
+        }
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
+        desktop.output = window.output;
+        const driver = this.ctrl.driverManager.getDriver(desktop);
+        if (!driver) return;
+
+        const client = driver.clients.get(window);
+        if (!client) return;
+
+        const engine = driver.engine;
+        const sibling = engine.getSiblingClient(client);
+        if (sibling) {
+            engine.swapClients(client, sibling);
+            engine.buildLayout();
+            this.ctrl.driverManager.rebuildLayout(window.output);
+            this.logger.debug("Swapped window with sibling");
+        }
+    }
+
+    // Hyprland-style: swap with window in a direction
+    swapInDirection(direction: Direction): void {
+        const window = this.ctrl.workspace.activeWindow;
+        if (
+            window == null ||
+            !this.ctrl.windowExtensions.get(window)?.isTiled
+        ) {
+            return;
+        }
+        const point = pointInDirection(window, direction);
+        const targetTile = this.tileInDirection(window, point);
+        if (!targetTile || targetTile.windows.length === 0) {
+            return;
+        }
+        const targetWindow = targetTile.windows[0];
+        if (targetWindow === window) return;
+
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
+        desktop.output = window.output;
+        const driver = this.ctrl.driverManager.getDriver(desktop);
+        if (!driver) return;
+
+        const client1 = driver.clients.get(window);
+        const client2 = driver.clients.get(targetWindow);
+        if (!client1 || !client2) return;
+
+        const engine = driver.engine;
+        if (engine.swapClients(client1, client2)) {
+            engine.buildLayout();
+            this.ctrl.driverManager.rebuildLayout(window.output);
+            this.logger.debug("Swapped windows in direction", direction);
+        }
+    }
+
+    // Hyprland-style: toggle split direction at current window
+    toggleSplit(): void {
+        const window = this.ctrl.workspace.activeWindow;
+        if (
+            window == null ||
+            !this.ctrl.windowExtensions.get(window)?.isTiled
+        ) {
+            return;
+        }
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
+        desktop.output = window.output;
+        const driver = this.ctrl.driverManager.getDriver(desktop);
+        if (!driver) return;
+
+        const client = driver.clients.get(window);
+        if (!client) return;
+
+        const engine = driver.engine;
+        if (engine.toggleSplit(client)) {
+            engine.buildLayout();
+            this.ctrl.driverManager.rebuildLayout(window.output);
+            this.ctrl.qmlObjects.osd.show("Split direction toggled");
+            this.logger.debug("Toggled split direction");
+        }
+    }
+
+    // Cycle focus to next/previous tiled window
+    cycleNext(reverse: boolean = false): void {
+        const window = this.ctrl.workspace.activeWindow;
+        if (window == null) return;
+
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
+        desktop.output = window.output;
+        const driver = this.ctrl.driverManager.getDriver(desktop);
+        if (!driver) return;
+
+        const engine = driver.engine;
+        const allClients = engine.getAllClients();
+        if (allClients.length < 2) return;
+
+        // Find current window's index
+        const currentClient = driver.clients.get(window);
+        if (!currentClient) return;
+        const currentIndex = allClients.indexOf(currentClient);
+        if (currentIndex === -1) return;
+
+        // Get next/prev index with wraparound
+        let nextIndex: number;
+        if (reverse) {
+            nextIndex =
+                currentIndex === 0 ? allClients.length - 1 : currentIndex - 1;
+        } else {
+            nextIndex =
+                currentIndex === allClients.length - 1 ? 0 : currentIndex + 1;
+        }
+
+        // Find the window for the next client and focus it
+        const nextClient = allClients[nextIndex];
+        for (const [w, c] of driver.clients.entries()) {
+            if (c === nextClient) {
+                this.ctrl.workspace.activeWindow = w;
+                this.logger.debug("Cycled to window", w.resourceClass);
+                break;
+            }
+        }
     }
 }

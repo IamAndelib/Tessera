@@ -8,8 +8,6 @@ PlasmaCore.Dialog {
     id: settingsDialog;
     
     property var settings: ({
-        // see engine enum
-        engineType: 0,
         // 0 - left side, 1 - right side, 2 - active
         insertionPoint: 1,
         rotateLayout: false,
@@ -31,7 +29,6 @@ PlasmaCore.Dialog {
     hideOnWindowDeactivate: true;
 
     function setSettings(s) {
-        this.settings.engineType = s.engineType;
         this.settings.insertionPoint = s.insertionPoint;
         this.settings.rotateLayout = s.rotateLayout;
     }
@@ -43,7 +40,6 @@ PlasmaCore.Dialog {
         this.desktop.desktop = Workspace.currentDesktop.id;
         
         // update settings
-        engine.currentIndex = this.settings.engineType;
         insertionPoint.currentIndex = this.settings.insertionPoint;
         rotateLayout.checkState = this.settings.rotateLayout ? Qt.Checked : Qt.Unchecked;
         
@@ -62,7 +58,6 @@ PlasmaCore.Dialog {
     signal removeSettingsInternal(desktop: var);
     
     function saveSettings() {
-        this.settings.engineType = engine.currentIndex;
         this.settings.insertionPoint = insertionPoint.currentIndex;
         this.settings.rotateLayout = (rotateLayout.checkState == Qt.Checked);
         this.saveSettingsInternal(this.settings, this.desktop);
@@ -76,20 +71,6 @@ PlasmaCore.Dialog {
         id: main;
         Layout.alignment: Qt.AlignHCenter;
         spacing: 10;
-        
-        RowLayout {
-            Layout.fillWidth: true;
-            Layout.alignment: Qt.AlignHCenter;
-            spacing: 10;
-            
-            PC3.Label {
-                text: "Engine:";
-            }
-            PC3.ComboBox {
-                id: engine;
-                model: ["Binary Tree", "Half", "Three Column", "Monocle", "KWin"];
-            }
-        }
         
         RowLayout {
             Layout.alignment: Qt.AlignHCenter;

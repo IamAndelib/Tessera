@@ -11,27 +11,13 @@ import {
     Client as IClient,
 } from "./engine";
 import BTreeEngine from "./layouts/btree";
-import HalfEngine from "./layouts/half";
-import ThreeColumnEngine from "./layouts/threecolumn";
-import MonocleEngine from "./layouts/monocle";
-import KwinEngine from "./layouts/kwin";
 
 export interface EngineConfig extends InternalEngineConfig {
-    engineType: EngineType;
     // intentionally undefined when coming from settings dialog
     engineSettings: EngineSettings | undefined;
 }
 
 export { EngineCapability, EngineSettings };
-
-export const enum EngineType {
-    BTree = 0,
-    Half,
-    ThreeColumn,
-    Monocle,
-    Kwin,
-    _loop,
-}
 
 export class Client implements IClient {
     name: string;
@@ -91,6 +77,16 @@ export interface TilingEngine {
     putClientInTile(c: Client, t: Tile, d?: Direction): void;
     // called after subtiles are edited (ex. sizes) so the engine can update them internally if needed
     regenerateLayout(): void;
+
+    // Hyprland-style methods
+    // swaps two clients in the engine
+    swapClients(client1: Client, client2: Client): boolean;
+    // get sibling client for swap operations
+    getSiblingClient(client: Client): Client | null;
+    // toggle split direction at current node
+    toggleSplit(client: Client): boolean;
+    // get all clients for cycling
+    getAllClients(): Client[];
 }
 
 export class TilingEngineFactory {
@@ -104,33 +100,17 @@ export class TilingEngineFactory {
         let config = optConfig;
         if (config == undefined) {
             config = {
-                engineType: this.config.engineType,
                 insertionPoint: this.config.insertionPoint,
                 rotateLayout: this.config.rotateLayout,
                 engineSettings: {},
+                // Hyprland-style dwindle options
+                preserveSplit: this.config.preserveSplit,
+                forceSplit: this.config.forceSplit,
+                defaultSplitRatio: this.config.defaultSplitRatio,
             };
         }
-        const t = config.engineType % EngineType._loop;
-        let engine: TilingEngine;
-        switch (t) {
-            case EngineType.BTree:
-                engine = new BTreeEngine(config);
-                break;
-            case EngineType.Half:
-                engine = new HalfEngine(config);
-                break;
-            case EngineType.ThreeColumn:
-                engine = new ThreeColumnEngine(config);
-                break;
-            case EngineType.Monocle:
-                engine = new MonocleEngine(config);
-                break;
-            case EngineType.Kwin:
-                engine = new KwinEngine(config);
-                break;
-            default:
-                throw new Error("Engine not found for engine type " + t);
-        }
+        // Always use BTree engine
+        const engine: TilingEngine = new BTreeEngine(config);
         engine.initEngine();
         engine.engineSettings = config.engineSettings ?? {};
         return engine;

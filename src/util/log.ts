@@ -34,14 +34,14 @@ export class Log {
 
     debug(...stuff: any[]): void {
         if (!this.debugEnabled) return;
-        this.print("Polonium DBG:", stuff);
+        this.print("Tessera DBG:", stuff);
     }
 
     info(...stuff: any[]) {
-        this.print("Polonium INF:", stuff);
+        this.print("Tessera INF:", stuff);
     }
 
     error(...stuff: any[]) {
-        this.print("Polonium ERR:", stuff);
+        this.print("Tessera ERR:", stuff);
     }
 }

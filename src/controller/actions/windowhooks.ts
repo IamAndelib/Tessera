@@ -184,87 +184,84 @@ export class WindowHooks {
         } else {
             this.ctrl.driverManager.addWindow(this.window);
         }
+        // Reset wasTiled flag after successfully re-tiling
+        this.extensions.wasTiled = false;
         this.ctrl.driverManager.rebuildLayout(this.window.output);
+    }
+
+    // Helper to handle window state changes that affect tiling
+    private handleWindowStateChange(
+        isEnteringState: boolean,
+        logMessage: string,
+        logValue: boolean,
+        canRestore: () => boolean,
+    ): void {
+        this.logger.debug(
+            logMessage,
+            this.window.resourceClass,
+            "set to",
+            logValue,
+        );
+        if (isEnteringState && this.extensions.isTiled) {
+            this.ctrl.driverManager.untileWindow(this.window);
+            this.ctrl.driverManager.rebuildLayout(this.window.output);
+            this.extensions.wasTiled = true;
+        } else if (
+            !isEnteringState &&
+            this.extensions.wasTiled &&
+            !this.extensions.isTiled &&
+            canRestore()
+        ) {
+            this.putWindowInBestTile();
+        }
     }
 
     fullscreenChanged(): void {
         if (this.ctrl.driverManager.buildingLayout) {
             return;
         }
-        this.logger.debug(
-            "Fullscreen on client",
-            this.window.resourceClass,
-            "set to",
+        this.handleWindowStateChange(
             this.window.fullScreen,
+            "Fullscreen on client",
+            this.window.fullScreen,
+            () =>
+                !this.window.minimized &&
+                !(
+                    this.extensions.maximized &&
+                    this.extensions.isSingleMaximized
+                ),
         );
-        if (this.window.fullScreen && this.extensions.isTiled) {
-            this.ctrl.driverManager.untileWindow(this.window);
-            this.ctrl.driverManager.rebuildLayout(this.window.output);
-            this.extensions.wasTiled = true;
-        } else if (
-            !this.window.fullScreen &&
-            this.extensions.wasTiled &&
-            !this.extensions.isTiled &&
-            !this.window.minimized &&
-            !(this.extensions.maximized && this.extensions.isSingleMaximized)
-        ) {
-            this.putWindowInBestTile();
-        }
     }
 
     minimizedChanged(): void {
-        // ah yes boilerplate
-        this.logger.debug(
-            "Minimized on client",
-            this.window.resourceClass,
-            "set to",
+        this.handleWindowStateChange(
             this.window.minimized,
+            "Minimized on client",
+            this.window.minimized,
+            () =>
+                !this.window.fullScreen &&
+                !(
+                    this.extensions.maximized &&
+                    this.extensions.isSingleMaximized
+                ),
         );
-        if (this.window.minimized && this.extensions.isTiled) {
-            this.ctrl.driverManager.untileWindow(this.window);
-            this.ctrl.driverManager.rebuildLayout(this.window.output);
-            this.extensions.wasTiled = true;
-        } else if (
-            !this.window.minimized &&
-            this.extensions.wasTiled &&
-            !this.extensions.isTiled &&
-            !this.window.fullScreen &&
-            !(this.extensions.maximized && this.extensions.isSingleMaximized)
-        ) {
-            this.putWindowInBestTile();
-        }
     }
 
     maximizedChanged(mode: MaximizeMode) {
         const maximized = mode == MaximizeMode.MaximizeFull;
         this.extensions.maximized = maximized;
-        // ignore if the driver is making windows maximized
         if (this.ctrl.driverManager.buildingLayout) {
             return;
         }
-        // just dont handle maximizing for these
         if (this.extensions.isSingleMaximized) {
             return;
         }
-        this.logger.debug(
-            "Maximized on window",
-            this.window.resourceClass,
-            "set to",
+        this.handleWindowStateChange(
             maximized,
+            "Maximized on window",
+            maximized,
+            () => !this.window.fullScreen && !this.window.minimized,
         );
-        if (maximized && this.extensions.isTiled) {
-            this.ctrl.driverManager.untileWindow(this.window);
-            this.ctrl.driverManager.rebuildLayout(this.window.output);
-            this.extensions.wasTiled = true;
-        } else if (
-            !maximized &&
-            this.extensions.wasTiled &&
-            !this.extensions.isTiled &&
-            !this.window.fullScreen &&
-            !this.window.minimized
-        ) {
-            this.putWindowInBestTile();
-        }
     }
 }
 
