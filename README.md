@@ -57,8 +57,8 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 | `PreserveSplit`     | Keep split directions permanent                        | Off      |
 | `ForceSplit`        | Force split direction (Disabled/Left-Top/Right-Bottom) | Disabled |
 | `DefaultSplitRatio` | Default ratio when splitting (10-90%)                  | 50%      |
-| `RotateLayout`      | Rotate the base layout direction                       | Off      |
-| `AutoRotateLayout`  | Auto-rotate on portrait monitors                       | On       |
+| `RotateLayout`      | Vertical-first layout (top/bottom splits instead of side-by-side) | Off      |
+| `AutoRotateLayout`  | Adapt to portrait monitors automatically               | On       |
 | `TimerDelay`        | Layout engine responsiveness (lower = snappier)        | 10ms     |
 
 ## Keyboard Shortcuts
