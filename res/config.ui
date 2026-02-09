@@ -100,7 +100,36 @@ Comma separated list of process names.</string>
      </property>
     </widget>
    </item>
-   <item row="18" column="1" colspan="2">
+   <item row="18" column="1">
+    <widget class="QLabel" name="label_stacking">
+     <property name="text">
+      <string>Tiled window stacking</string>
+     </property>
+    </widget>
+   </item>
+   <item row="18" column="2">
+    <widget class="QComboBox" name="kcfg_TiledWindowStacking">
+     <property name="toolTip">
+      <string>Control stacking order of tiled windows relative to floating windows.</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>Normal</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Keep Above (on top)</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Keep Below (on bottom)</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="20" column="1" colspan="2">
     <widget class="QCheckBox" name="kcfg_SaveOnTileEdit">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Automatically save tile config and changes to dbus-saver after editing through KWin's tile editor. May not save for some layouts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -110,7 +139,7 @@ Comma separated list of process names.</string>
      </property>
     </widget>
    </item>
-   <item row="19" column="1">
+   <item row="21" column="1">
     <widget class="QLabel" name="label_9">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The amount of pixels to resize windows by when using shortcuts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -120,7 +149,7 @@ Comma separated list of process names.</string>
      </property>
     </widget>
    </item>
-   <item row="19" column="2">
+   <item row="21" column="2">
     <widget class="QSlider" name="kcfg_ResizeAmount">
      <property name="toolTip">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The amount of pixels to resize windows by when using shortcuts.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>

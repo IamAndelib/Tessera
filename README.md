@@ -17,6 +17,7 @@ Tessera is a KWin tiling script that brings the clean, intuitive dwindle tiling 
     -   `PreserveSplit` — Remember split directions permanently
     -   `ForceSplit` — Force all splits to a specific direction (left/top or right/bottom)
     -   `DefaultSplitRatio` — Set custom ratio for new splits (default 50%)
+-   **Tiled Window Stacking** — Control z-order: keep tiled windows above or below floating ones
 -   **Clean Focus Behavior** — Click any window to focus, no stacking restrictions
 -   **Keyboard Shortcuts** — Focus navigation, resizing, window insertion, layout rotation
 
@@ -55,6 +56,7 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 | Option              | Description                                            | Default  |
 | ------------------- | ------------------------------------------------------ | -------- |
 | `InsertionPoint`    | Where new windows appear: Left, Right, or Active       | Left     |
+| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below) | Normal |
 | `MaximizeSingle`    | Maximize when only one window exists                   | Off      |
 | `PreserveSplit`     | Keep split directions permanent                        | Off      |
 | `ForceSplit`        | Force split direction (Disabled/Left-Top/Right-Bottom) | Disabled |

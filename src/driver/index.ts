@@ -176,6 +176,8 @@ export class DriverManager {
         const extensions = this.ctrl.windowExtensions.get(window)!;
         extensions.isTiled = false;
         extensions.isSingleMaximized = false;
+        window.keepAbove = false;
+        window.keepBelow = false;
     }
 
     rebuildLayout(output?: Output): void {

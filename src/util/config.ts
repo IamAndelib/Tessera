@@ -8,6 +8,12 @@ export const enum InsertionPoint {
     Active,
 }
 
+export const enum TiledWindowStacking {
+    Normal = 0,
+    KeepAbove,
+    KeepBelow,
+}
+
 // Hyprland-style force split direction
 export const enum ForceSplit {
     Disabled = 0, // Use dynamic/alternating split
@@ -46,6 +52,8 @@ export class Config {
         this.resizeAmount = rc("ResizeAmount", 10);
         this.saveOnTileEdit = rc("SaveOnTileEdit", false);
 
+        this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.Normal);
+
         this.insertionPoint = rc("InsertionPoint", InsertionPoint.Left);
         this.rotateLayout = rc("RotateLayout", false);
         this.autoRotateLayout = rc("AutoRotateLayout", true);
@@ -69,6 +77,8 @@ export class Config {
     filterCaption: string[] = [];
 
     timerDelay: number = 10;
+
+    tiledWindowStacking: TiledWindowStacking = TiledWindowStacking.Normal;
 
     maximizeSingle: boolean = false;
     resizeAmount: number = 10;

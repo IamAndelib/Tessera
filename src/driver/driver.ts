@@ -10,7 +10,7 @@ import {
 } from "../engine";
 import { Direction } from "../util/geometry";
 import { GSize, GPoint, DirectionTools } from "../util/geometry";
-import { InsertionPoint } from "../util/config";
+import { InsertionPoint, TiledWindowStacking } from "../util/config";
 import * as Kwin from "kwin-api";
 import BiMap from "mnemonist/bi-map";
 import Queue from "mnemonist/queue";
@@ -100,6 +100,8 @@ export class TilingDriver {
                 this.ctrl.windowExtensions.get(window)!.isSingleMaximized =
                     true;
                 window.setMaximize(true, true);
+                window.keepAbove = this.config.tiledWindowStacking === TiledWindowStacking.KeepAbove;
+                window.keepBelow = this.config.tiledWindowStacking === TiledWindowStacking.KeepBelow;
                 this.ctrl.workspace.raiseWindow(window);
             }
             return;
@@ -168,6 +170,8 @@ export class TilingDriver {
                     window.tile = null;
                 }
                 window.tile = kwinTile;
+                window.keepAbove = this.config.tiledWindowStacking === TiledWindowStacking.KeepAbove;
+                window.keepBelow = this.config.tiledWindowStacking === TiledWindowStacking.KeepBelow;
                 extensions.lastTiledLocation = GPoint.centerOfRect(
                     kwinTile.absoluteGeometry,
                 );
