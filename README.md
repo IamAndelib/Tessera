@@ -1,3 +1,5 @@
+![Tessera Logo](res/tessera-logo.png)
+
 # Tessera
 
 **Hyprland-style dwindle tiling for KDE Plasma 6**
