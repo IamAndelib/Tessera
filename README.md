@@ -171,14 +171,6 @@ Configure in **System Settings > Shortcuts > KWin** (search "Tessera"):
 | Cycle Windows Previous | `Meta+Shift+Tab` | Cycle focus to the previous tiled window |
 | Toggle Vertical-First | *(unset)* | Toggle between horizontal-first and vertical-first layout |
 
-## Recommended KWin Effects
-
-For smooth animations, enable in **System Settings > Desktop Effects**:
-
-1. **Geometry Change** — Essential for smooth tile resizing
-2. **Magic Lamp** or **Scale** — Window open/close animations
-3. **Slide** — Virtual desktop switching
-
 ## Credits
 
 Based on [Polonium](https://github.com/zeroxoneafour/polonium) by Vaughan Milliman.
