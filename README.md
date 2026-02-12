@@ -33,12 +33,6 @@ cd Tessera
 ./install.sh
 ```
 
-The script will:
-1. Detect your package manager and install missing dependencies (`npm`, `make`, `zip`)
-2. Bundle the TypeScript source with esbuild
-3. Assemble and install the KWin script package via `kpackagetool6`
-4. Optionally restart KWin to activate Tessera immediately
-
 > **Note:** Do not run `install.sh` as root. It uses `sudo` internally only for package installation.
 
 ---
@@ -111,38 +105,6 @@ zip -r tessera.kwinscript pkg
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
 ```
 
-#### Void Linux
-
-```bash
-# Install dependencies
-sudo xbps-install -S nodejs make zip git
-
-# Clone and install
-git clone https://github.com/IamAndelib/Tessera.git
-cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
-make res src
-zip -r tessera.kwinscript pkg
-kpackagetool6 -t KWin/Script -i tessera.kwinscript
-```
-
-#### Alpine Linux
-
-```bash
-# Install dependencies
-sudo apk add npm make zip git
-
-# Clone and install
-git clone https://github.com/IamAndelib/Tessera.git
-cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
-make res src
-zip -r tessera.kwinscript pkg
-kpackagetool6 -t KWin/Script -i tessera.kwinscript
-```
-
 ---
 
 ### Upgrading
@@ -163,15 +125,6 @@ The script automatically detects the existing installation and upgrades it.
 kpackagetool6 -t KWin/Script -r tessera
 ```
 
-### Post-Install
-
-1. **Enable the script:** System Settings > Window Management > KWin Scripts > Tessera
-2. **Configure shortcuts:** System Settings > Shortcuts > KWin (search "Tessera")
-3. **Restart KWin** to load the script:
-   ```bash
-   qdbus6 org.kde.KWin /KWin reconfigure
-   ```
-
 ## Configuration
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**
@@ -190,13 +143,33 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 
 ## Keyboard Shortcuts
 
-Configure in **System Settings > Shortcuts > KWin**:
+Configure in **System Settings > Shortcuts > KWin** (search "Tessera"):
 
--   **Tessera: Tile/Untile Window** — Toggle tiling for active window
--   **Tessera: Focus Above/Below/Left/Right** — Navigate between tiles
--   **Tessera: Insert Above/Below/Left/Right** — Move window to adjacent tile
--   **Tessera: Resize Above/Below/Left/Right** — Resize tile borders
--   **Tessera: Rotate Layout** — Toggle layout rotation
+| Action | Default Shortcut | Description |
+|---|---|---|
+| Tile/Untile Window | `Meta+Shift+Space` | Toggle tiling for the active window |
+| Open Settings | `Meta+\` | Open Tessera quick settings dialog |
+| Focus Above | `Meta+K` | Move focus to the window above |
+| Focus Below | `Meta+J` | Move focus to the window below |
+| Focus Left | `Meta+H` | Move focus to the window on the left |
+| Focus Right | `Meta+L` | Move focus to the window on the right |
+| Move Window Up | `Meta+Shift+K` | Move the active window up in the layout |
+| Move Window Down | `Meta+Shift+J` | Move the active window down in the layout |
+| Move Window Left | `Meta+Shift+H` | Move the active window left in the layout |
+| Move Window Right | `Meta+Shift+L` | Move the active window right in the layout |
+| Resize Up | `Meta+Ctrl+K` | Expand the tile border upward |
+| Resize Down | `Meta+Ctrl+J` | Expand the tile border downward |
+| Resize Left | `Meta+Ctrl+H` | Expand the tile border to the left |
+| Resize Right | `Meta+Ctrl+L` | Expand the tile border to the right |
+| Swap with Sibling | `Meta+S` | Swap the active window with its sibling in the tree |
+| Swap Up | `Meta+Alt+K` | Swap the active window with the one above |
+| Swap Down | `Meta+Alt+J` | Swap the active window with the one below |
+| Swap Left | `Meta+Alt+H` | Swap the active window with the one on the left |
+| Swap Right | `Meta+Alt+L` | Swap the active window with the one on the right |
+| Toggle Split Direction | `Meta+T` | Toggle between horizontal and vertical split |
+| Cycle Windows Next | `Meta+Tab` | Cycle focus to the next tiled window |
+| Cycle Windows Previous | `Meta+Shift+Tab` | Cycle focus to the previous tiled window |
+| Toggle Vertical-First | *(unset)* | Toggle between horizontal-first and vertical-first layout |
 
 ## Recommended KWin Effects
 
