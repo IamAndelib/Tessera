@@ -143,7 +143,7 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 
 ## Keyboard Shortcuts
 
-Configure in **System Settings > Shortcuts > KWin** (search "Tessera"):
+Configure in **System Settings > Shortcuts > Window Management** (search "Tessera"):
 
 | Action | Default Shortcut | Description |
 |---|---|---|
