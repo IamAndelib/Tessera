@@ -23,31 +23,154 @@ Tessera is a KWin tiling script that brings the clean, intuitive dwindle tiling 
 
 ## Installation
 
-### From Source
+### Quick Install (Recommended)
 
-1. **Dependencies:** `npm`, `git`, `kpackagetool6`
+The install script automatically detects your distro, installs build dependencies, builds Tessera from source, and installs it as a KWin script. It works on any Linux distribution running KDE Plasma 6.
 
-2. **Clone and build:**
+```bash
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+./install.sh
+```
 
-    ```bash
-    git clone https://github.com/mimisriz/tessera.git
-    cd tessera
-    make build
-    ```
+The script will:
+1. Detect your package manager and install missing dependencies (`npm`, `make`, `zip`)
+2. Bundle the TypeScript source with esbuild
+3. Assemble and install the KWin script package via `kpackagetool6`
+4. Optionally restart KWin to activate Tessera immediately
 
-3. **Install:**
+> **Note:** Do not run `install.sh` as root. It uses `sudo` internally only for package installation.
 
-    ```bash
-    make install
-    ```
+---
 
-4. **Enable:** Go to **System Settings > Window Management > KWin Scripts** and enable Tessera
+### Manual Install (Per-Distro)
+
+If you prefer to install dependencies manually, follow the instructions for your distribution below, then run the build and install steps.
+
+#### Arch Linux / Manjaro / EndeavourOS
+
+```bash
+# Install dependencies
+sudo pacman -S --needed npm make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+#### Fedora / RHEL / CentOS Stream
+
+```bash
+# Install dependencies
+sudo dnf install npm make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+#### Ubuntu / Kubuntu / Debian / Linux Mint
+
+```bash
+# Install dependencies
+sudo apt update && sudo apt install npm make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+#### openSUSE Tumbleweed / Leap
+
+```bash
+# Install dependencies
+sudo zypper install npm-default make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+#### Void Linux
+
+```bash
+# Install dependencies
+sudo xbps-install -S nodejs make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+#### Alpine Linux
+
+```bash
+# Install dependencies
+sudo apk add npm make zip git
+
+# Clone and install
+git clone https://github.com/IamAndelib/Tessera.git
+cd Tessera
+npm install
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+make res src
+zip -r tessera.kwinscript pkg
+kpackagetool6 -t KWin/Script -i tessera.kwinscript
+```
+
+---
+
+### Upgrading
+
+To upgrade an existing installation, pull the latest changes and re-run the install script:
+
+```bash
+cd Tessera
+git pull
+./install.sh
+```
+
+The script automatically detects the existing installation and upgrades it.
 
 ### Uninstall
 
 ```bash
-make uninstall
+kpackagetool6 -t KWin/Script -r tessera
 ```
+
+### Post-Install
+
+1. **Enable the script:** System Settings > Window Management > KWin Scripts > Tessera
+2. **Configure shortcuts:** System Settings > Shortcuts > KWin (search "Tessera")
+3. **Restart KWin** to load the script:
+   ```bash
+   qdbus6 org.kde.KWin /KWin reconfigure
+   ```
 
 ## Configuration
 
