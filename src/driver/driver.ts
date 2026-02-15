@@ -8,8 +8,7 @@ import {
     EngineConfig,
     TilingEngineFactory,
 } from "../engine";
-import { Direction } from "../util/geometry";
-import { GSize, GPoint, DirectionTools } from "../util/geometry";
+import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
 import { InsertionPoint, TiledWindowStacking } from "../util/config";
 import * as Kwin from "kwin-api";
 import BiMap from "mnemonist/bi-map";
@@ -100,8 +99,12 @@ export class TilingDriver {
                 this.ctrl.windowExtensions.get(window)!.isSingleMaximized =
                     true;
                 window.setMaximize(true, true);
-                window.keepAbove = this.config.tiledWindowStacking === TiledWindowStacking.KeepAbove;
-                window.keepBelow = this.config.tiledWindowStacking === TiledWindowStacking.KeepBelow;
+                window.keepAbove =
+                    this.config.tiledWindowStacking ===
+                    TiledWindowStacking.KeepAbove;
+                window.keepBelow =
+                    this.config.tiledWindowStacking ===
+                    TiledWindowStacking.KeepBelow;
                 this.ctrl.workspace.raiseWindow(window);
             }
             return;
@@ -132,15 +135,21 @@ export class TilingDriver {
                     const childTile = tile.tiles[i];
                     this.tiles.set(childKwinTile, childTile);
                     // size based on relative size plus autosizing
-                    // yeah whatever im just using relative size idc anymore and it works (?)
+                    // Must read-modify-write: in Qt's JS engine, relativeGeometry
+                    // returns a copy of the QRectF, so direct sub-property assignment
+                    // (e.g. tile.relativeGeometry.width = X) silently mutates the copy.
                     if (horizontal && i > 0) {
-                        kwinTile.tiles[i - 1].relativeGeometry.width =
+                        const geom = kwinTile.tiles[i - 1].relativeGeometry;
+                        geom.width =
                             kwinTile.relativeGeometry.width *
                             tile.tiles[i - 1].relativeSize;
+                        kwinTile.tiles[i - 1].relativeGeometry = geom;
                     } else if (i > 0) {
-                        kwinTile.tiles[i - 1].relativeGeometry.height =
+                        const geom = kwinTile.tiles[i - 1].relativeGeometry;
+                        geom.height =
                             kwinTile.relativeGeometry.height *
                             tile.tiles[i - 1].relativeSize;
+                        kwinTile.tiles[i - 1].relativeGeometry = geom;
                     }
                     queue.enqueue(childTile);
                 }
@@ -151,7 +160,7 @@ export class TilingDriver {
                 queue.enqueue(tile.tiles[0]);
             }
 
-            // JAVASCRIPT MENTIONED !!!!! WHAT THE FUCK IS A IMMUTABLE ITERATOR ?!?!?!
+            // Iterating over clients backwards to ensure stacking order
             for (let i = tile.clients.length - 1; i >= 0; i -= 1) {
                 const client = tile.clients[i];
                 const window = this.clients.inverse.get(client);
@@ -170,8 +179,12 @@ export class TilingDriver {
                     window.tile = null;
                 }
                 window.tile = kwinTile;
-                window.keepAbove = this.config.tiledWindowStacking === TiledWindowStacking.KeepAbove;
-                window.keepBelow = this.config.tiledWindowStacking === TiledWindowStacking.KeepBelow;
+                window.keepAbove =
+                    this.config.tiledWindowStacking ===
+                    TiledWindowStacking.KeepAbove;
+                window.keepBelow =
+                    this.config.tiledWindowStacking ===
+                    TiledWindowStacking.KeepBelow;
                 extensions.lastTiledLocation = GPoint.centerOfRect(
                     kwinTile.absoluteGeometry,
                 );
@@ -204,51 +217,66 @@ export class TilingDriver {
         }
         const horizontal =
             kwinTile.parent.layoutDirection == Kwin.LayoutDirection.Horizontal;
-        // horiz resize
+
+        // Helper to apply resize with correct edge based on index
+        const applyResize = (
+            targetTile: Kwin.Tile,
+            diff: number,
+            isHorizontal: boolean,
+        ) => {
+            if (isHorizontal) {
+                if (index == 0) {
+                    targetTile.resizeByPixels(diff, Kwin.Edge.RightEdge);
+                } else {
+                    targetTile.resizeByPixels(-diff, Kwin.Edge.LeftEdge);
+                }
+            } else {
+                if (index == 0) {
+                    targetTile.resizeByPixels(diff, Kwin.Edge.BottomEdge);
+                } else {
+                    targetTile.resizeByPixels(-diff, Kwin.Edge.TopEdge);
+                }
+            }
+        };
+
+        // Helper to handle parent expanding if child can't
+        const applyParentResize = (diff: number, isHorizontal: boolean) => {
+            if (parentIndex == null) return;
+            // If we're resizing the parent, we use parentIndex to determine edge
+            if (isHorizontal) {
+                if (parentIndex == 0) {
+                    kwinTile.parent!.resizeByPixels(diff, Kwin.Edge.RightEdge);
+                } else {
+                    kwinTile.parent!.resizeByPixels(-diff, Kwin.Edge.LeftEdge);
+                }
+            } else {
+                if (parentIndex == 0) {
+                    kwinTile.parent!.resizeByPixels(diff, Kwin.Edge.BottomEdge);
+                } else {
+                    kwinTile.parent!.resizeByPixels(-diff, Kwin.Edge.TopEdge);
+                }
+            }
+        };
+
+        // Horizontal resize
         if (requestedSize.width > kwinTile.absoluteGeometryInScreen.width) {
             let diff =
                 requestedSize.width - kwinTile.absoluteGeometryInScreen.width;
             if (horizontal) {
-                // if the layout is horizontal already, width resizing should be easy
-                if (index == 0) {
-                    // first tile in sequence, shift border right
-                    kwinTile.resizeByPixels(diff, Kwin.Edge.RightEdge);
-                } else {
-                    // shift border left
-                    kwinTile.resizeByPixels(-diff, Kwin.Edge.LeftEdge);
-                }
-            } else if (parentIndex != null) {
-                // evaluate here if the tile is laid out vertically but needs to be expanded horizontally
-                if (parentIndex == 0) {
-                    // first tile in sequence, shift border right
-                    kwinTile.parent.resizeByPixels(diff, Kwin.Edge.RightEdge);
-                } else {
-                    // shift border left
-                    kwinTile.parent.resizeByPixels(-diff, Kwin.Edge.LeftEdge);
-                }
+                applyResize(kwinTile, diff, true);
+            } else {
+                applyParentResize(diff, true);
             }
         }
 
-        // vertical resize
+        // Vertical resize
         if (requestedSize.height > kwinTile.absoluteGeometryInScreen.height) {
             let diff =
                 requestedSize.height - kwinTile.absoluteGeometryInScreen.height;
             if (!horizontal) {
-                if (index == 0) {
-                    // first tile in sequence, shift border down
-                    kwinTile.resizeByPixels(diff, Kwin.Edge.BottomEdge);
-                } else {
-                    // shift border up
-                    kwinTile.resizeByPixels(-diff, Kwin.Edge.TopEdge);
-                }
-            } else if (parentIndex != null) {
-                if (parentIndex == 0) {
-                    // first tile in sequence, shift border down
-                    kwinTile.parent.resizeByPixels(diff, Kwin.Edge.BottomEdge);
-                } else {
-                    // shift border up
-                    kwinTile.parent.resizeByPixels(-diff, Kwin.Edge.TopEdge);
-                }
+                applyResize(kwinTile, diff, false);
+            } else {
+                applyParentResize(diff, false);
             }
         }
     }
@@ -414,9 +442,22 @@ export class TilingDriver {
         }
         try {
             this.engine.regenerateLayout();
-            this.engine.buildLayout();
         } catch (e) {
             this.logger.error(e);
         }
+    }
+
+    swapHalves(rootTile: Kwin.Tile): boolean {
+        this.regenerateLayout(rootTile);
+        if (this.engine.swapHalves()) {
+            try {
+                this.engine.buildLayout();
+                return true;
+            } catch (e) {
+                this.logger.error(e);
+                return false;
+            }
+        }
+        return false;
     }
 }

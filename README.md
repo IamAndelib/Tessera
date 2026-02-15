@@ -129,47 +129,48 @@ kpackagetool6 -t KWin/Script -r tessera
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**
 
-| Option              | Description                                            | Default  |
-| ------------------- | ------------------------------------------------------ | -------- |
-| `InsertionPoint`    | Where new windows appear: Left, Right, or Active       | Left     |
-| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below) | Normal |
-| `MaximizeSingle`    | Maximize when only one window exists                   | Off      |
-| `PreserveSplit`     | Keep split directions permanent                        | Off      |
-| `ForceSplit`        | Force split direction (Disabled/Left-Top/Right-Bottom) | Disabled |
-| `DefaultSplitRatio` | Default ratio when splitting (10-90%)                  | 50%      |
-| `RotateLayout`      | Vertical-first layout (top/bottom splits instead of side-by-side) | Off      |
-| `AutoRotateLayout`  | Adapt to portrait monitors automatically               | On       |
-| `TimerDelay`        | Layout engine responsiveness (lower = snappier)        | 10ms     |
+| Option                | Description                                                       | Default  |
+| --------------------- | ----------------------------------------------------------------- | -------- |
+| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left     |
+| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal   |
+| `MaximizeSingle`      | Maximize when only one window exists                              | Off      |
+| `PreserveSplit`       | Keep split directions permanent                                   | Off      |
+| `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled |
+| `DefaultSplitRatio`   | Default ratio when splitting (10-90%)                             | 50%      |
+| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off      |
+| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On       |
+| `TimerDelay`          | Layout engine responsiveness (lower = snappier)                   | 10ms     |
 
 ## Keyboard Shortcuts
 
 Configure in **System Settings > Shortcuts > Window Management** (search "Tessera"):
 
-| Action | Default Shortcut | Description |
-|---|---|---|
-| Tile/Untile Window | `Meta+Shift+Space` | Toggle tiling for the active window |
-| Open Settings | `Meta+\` | Open Tessera quick settings dialog |
-| Focus Above | `Meta+K` | Move focus to the window above |
-| Focus Below | `Meta+J` | Move focus to the window below |
-| Focus Left | `Meta+H` | Move focus to the window on the left |
-| Focus Right | `Meta+L` | Move focus to the window on the right |
-| Move Window Up | `Meta+Shift+K` | Move the active window up in the layout |
-| Move Window Down | `Meta+Shift+J` | Move the active window down in the layout |
-| Move Window Left | `Meta+Shift+H` | Move the active window left in the layout |
-| Move Window Right | `Meta+Shift+L` | Move the active window right in the layout |
-| Resize Up | `Meta+Ctrl+K` | Expand the tile border upward |
-| Resize Down | `Meta+Ctrl+J` | Expand the tile border downward |
-| Resize Left | `Meta+Ctrl+H` | Expand the tile border to the left |
-| Resize Right | `Meta+Ctrl+L` | Expand the tile border to the right |
-| Swap with Sibling | `Meta+S` | Swap the active window with its sibling in the tree |
-| Swap Up | `Meta+Alt+K` | Swap the active window with the one above |
-| Swap Down | `Meta+Alt+J` | Swap the active window with the one below |
-| Swap Left | `Meta+Alt+H` | Swap the active window with the one on the left |
-| Swap Right | `Meta+Alt+L` | Swap the active window with the one on the right |
-| Toggle Split Direction | `Meta+T` | Toggle between horizontal and vertical split |
-| Cycle Windows Next | `Meta+Tab` | Cycle focus to the next tiled window |
-| Cycle Windows Previous | `Meta+Shift+Tab` | Cycle focus to the previous tiled window |
-| Toggle Vertical-First | *(unset)* | Toggle between horizontal-first and vertical-first layout |
+| Action                 | Default Shortcut   | Description                                               |
+| ---------------------- | ------------------ | --------------------------------------------------------- |
+| Tile/Untile Window     | `Meta+Shift+Space` | Toggle tiling for the active window                       |
+| Open Settings          | `Meta+\`           | Open Tessera quick settings dialog                        |
+| Focus Above            | `Meta+K`           | Move focus to the window above                            |
+| Focus Below            | `Meta+J`           | Move focus to the window below                            |
+| Focus Left             | `Meta+H`           | Move focus to the window on the left                      |
+| Focus Right            | `Meta+L`           | Move focus to the window on the right                     |
+| Move Window Up         | `Meta+Shift+K`     | Move the active window up in the layout                   |
+| Move Window Down       | `Meta+Shift+J`     | Move the active window down in the layout                 |
+| Move Window Left       | `Meta+Shift+H`     | Move the active window left in the layout                 |
+| Move Window Right      | `Meta+Shift+L`     | Move the active window right in the layout                |
+| Resize Up              | `Meta+Ctrl+K`      | Expand the tile border upward                             |
+| Resize Down            | `Meta+Ctrl+J`      | Expand the tile border downward                           |
+| Resize Left            | `Meta+Ctrl+H`      | Expand the tile border to the left                        |
+| Resize Right           | `Meta+Ctrl+L`      | Expand the tile border to the right                       |
+| Swap with Sibling      | `Meta+S`           | Swap the active window with its sibling in the tree       |
+| Swap Up                | `Meta+Alt+K`       | Swap the active window with the one above                 |
+| Swap Down              | `Meta+Alt+J`       | Swap the active window with the one below                 |
+| Swap Left              | `Meta+Alt+H`       | Swap the active window with the one on the left           |
+| Swap Right             | `Meta+Alt+L`       | Swap the active window with the one on the right          |
+| Swap Halves            | `Meta+Shift+S`     | Swap the two tiling halves of the screen                  |
+| Toggle Split Direction | `Meta+T`           | Toggle between horizontal and vertical split              |
+| Cycle Windows Next     | `Meta+Tab`         | Cycle focus to the next tiled window                      |
+| Cycle Windows Previous | `Meta+Shift+Tab`   | Cycle focus to the previous tiled window                  |
+| Toggle Vertical-First  | _(unset)_          | Toggle between horizontal-first and vertical-first layout |
 
 ## Credits
 

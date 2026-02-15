@@ -329,18 +329,17 @@ export class ShortcutManager {
             "swapHalves: calling engine.swapHalves, clients count =",
             driver.clients.size,
         );
-        if (engine.swapHalves()) {
-            this.logger.debug(
-                "swapHalves: engine swap succeeded, rebuilding layout",
-            );
-            engine.buildLayout();
+
+        // Sync live KWin tile sizes into the engine tree before swapping.
+        // This ensures node.sizeRatio reflects the actual current layout,
+        // not a potentially stale value from before the user resized.
+        const kwinRootTile = this.ctrl.workspace.tilingForScreen(
+            window.output,
+        ).rootTile;
+
+        if (driver.swapHalves(kwinRootTile)) {
             this.ctrl.driverManager.rebuildLayout(window.output);
-            this.ctrl.qmlObjects.osd.show("Layout halves swapped");
-            this.logger.debug("swapHalves: layout rebuilt successfully");
         } else {
-            this.logger.debug(
-                "swapHalves: engine.swapHalves() returned false (no children at root)",
-            );
             this.ctrl.qmlObjects.osd.show(
                 "Cannot swap: less than 2 windows tiled",
             );
