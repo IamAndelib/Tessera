@@ -4,7 +4,7 @@
 
 **Hyprland-style dwindle tiling for KDE Plasma 6**
 
-![Tessera Demo](res/demo.mp4)
+![Tessera Demo](res/demo.gif)
 
 Tessera is a KWin tiling script that brings the clean, intuitive dwindle tiling behavior of Hyprland to KDE Plasma. Based on Polonium, it has been streamlined and enhanced with Hyprland-specific features.
 
