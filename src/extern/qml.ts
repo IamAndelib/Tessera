@@ -59,6 +59,7 @@ export interface Shortcuts {
     getRotateLayout(): ShortcutHandler;
 
     // Hyprland-style shortcuts
+    getSwapHalves(): ShortcutHandler;
     getSwapWithSibling(): ShortcutHandler;
     getSwapAbove(): ShortcutHandler;
     getSwapBelow(): ShortcutHandler;

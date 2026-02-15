@@ -255,6 +255,24 @@ export default class BTreeEngine extends TilingEngine {
         }
     }
 
+    // Swap the two halves of the layout (root's children/subtrees)
+    swapHalves(): boolean {
+        if (this.rootNode.children == null) return false;
+
+        const temp = this.rootNode.children[0];
+        this.rootNode.children[0] = this.rootNode.children[1];
+        this.rootNode.children[1] = temp;
+
+        // Swap sibling references to keep them consistent
+        this.rootNode.children[0].sibling = this.rootNode.children[1];
+        this.rootNode.children[1].sibling = this.rootNode.children[0];
+
+        // Invert the root's size ratio so each half retains its original size
+        this.rootNode.sizeRatio = 1 - this.rootNode.sizeRatio;
+
+        return true;
+    }
+
     // Hyprland-style: swap a client with its sibling in the tree
     swapClients(client1: Client, client2: Client): boolean {
         let node1: TreeNode | null = null;

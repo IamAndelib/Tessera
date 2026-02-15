@@ -172,6 +172,17 @@ Item {
     }
 
     // Hyprland-style shortcuts
+    function getSwapHalves() {
+        return swapHalves;
+    }
+    ShortcutHandler {
+        id: swapHalves;
+
+        name: "TesseraSwapHalves";
+        text: "Tessera: Swap Halves";
+        sequence: "Meta+Shift+S";
+    }
+
     function getSwapWithSibling() {
         return swapWithSibling;
     }

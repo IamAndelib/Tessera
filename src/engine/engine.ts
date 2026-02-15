@@ -198,6 +198,7 @@ export abstract class TilingEngine implements ITilingEngine {
     public abstract regenerateLayout(): void;
 
     // Hyprland-style methods
+    public abstract swapHalves(): boolean;
     public abstract swapClients(client1: Client, client2: Client): boolean;
     public abstract getSiblingClient(client: Client): Client | null;
     public abstract toggleSplit(client: Client): boolean;

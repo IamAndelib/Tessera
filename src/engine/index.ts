@@ -79,6 +79,8 @@ export interface TilingEngine {
     regenerateLayout(): void;
 
     // Hyprland-style methods
+    // swaps the two halves (root subtrees) of the layout
+    swapHalves(): boolean;
     // swaps two clients in the engine
     swapClients(client1: Client, client2: Client): boolean;
     // get sibling client for swap operations

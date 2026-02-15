@@ -122,6 +122,7 @@ export class ShortcutManager {
             .activated.connect(this.rotateLayout.bind(this));
 
         // Hyprland-style shortcuts
+        shortcuts.getSwapHalves().activated.connect(this.swapHalves.bind(this));
         shortcuts
             .getSwapWithSibling()
             .activated.connect(this.swapWithSibling.bind(this));
@@ -296,6 +297,54 @@ export class ShortcutManager {
             "Vertical-First: " + engineConfig.rotateLayout,
         );
         this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
+    }
+
+    // Swap the two halves (root subtrees) of the current screen's layout
+    swapHalves(): void {
+        this.logger.debug("swapHalves: triggered");
+        const window = this.ctrl.workspace.activeWindow;
+        if (window == null) {
+            this.logger.debug("swapHalves: no active window, aborting");
+            return;
+        }
+        if (!this.ctrl.windowExtensions.get(window)?.isTiled) {
+            this.logger.debug(
+                "swapHalves: active window not tiled, aborting",
+                window.resourceClass,
+            );
+            return;
+        }
+
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
+        desktop.output = window.output;
+        this.logger.debug("swapHalves: desktop key =", desktop.toString());
+        const driver = this.ctrl.driverManager.getDriver(desktop);
+        if (!driver) {
+            this.logger.debug("swapHalves: no driver found for desktop");
+            return;
+        }
+
+        const engine = driver.engine;
+        this.logger.debug(
+            "swapHalves: calling engine.swapHalves, clients count =",
+            driver.clients.size,
+        );
+        if (engine.swapHalves()) {
+            this.logger.debug(
+                "swapHalves: engine swap succeeded, rebuilding layout",
+            );
+            engine.buildLayout();
+            this.ctrl.driverManager.rebuildLayout(window.output);
+            this.ctrl.qmlObjects.osd.show("Layout halves swapped");
+            this.logger.debug("swapHalves: layout rebuilt successfully");
+        } else {
+            this.logger.debug(
+                "swapHalves: engine.swapHalves() returned false (no children at root)",
+            );
+            this.ctrl.qmlObjects.osd.show(
+                "Cannot swap: less than 2 windows tiled",
+            );
+        }
     }
 
     // Hyprland-style: swap focused window with its sibling
