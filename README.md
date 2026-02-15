@@ -1,8 +1,12 @@
-![Tessera Logo](res/tessera-logo.png)
+<p align="center">
+  <img src="res/tessera-logo.png" width="128" alt="Tessera Logo">
+</p>
 
-# Tessera
+# <p align="center">Tessera</p>
 
-**Hyprland-style dwindle tiling for KDE Plasma 6**
+<p align="center">
+  <strong>Hyprland-style dwindle tiling for KDE Plasma 6</strong>
+</p>
 
 ![Tessera Demo](res/demo.gif)
 
