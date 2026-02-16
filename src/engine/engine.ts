@@ -80,10 +80,10 @@ export class Tile implements ITile {
 
     // adds a child that will split perpendicularly to the parent. Returns the child
     addChild(alterSiblingRatios = true): Tile {
-        let splitDirection: LayoutDirection = 1;
-        if (this.layoutDirection == 1) {
-            splitDirection = 2;
-        }
+        const splitDirection =
+            this.layoutDirection === LayoutDirection.Horizontal
+                ? LayoutDirection.Vertical
+                : LayoutDirection.Horizontal;
         const childTile = new Tile(this, alterSiblingRatios);
         childTile.layoutDirection = splitDirection;
         return childTile;
@@ -162,7 +162,7 @@ export class Tile implements ITile {
         for (const tile of this.tiles) {
             totalSize += tile.relativeSize;
         }
-        if (totalSize == 1) {
+        if (Math.abs(totalSize - 1) < 0.001) {
             return;
         }
         for (const tile of this.tiles) {

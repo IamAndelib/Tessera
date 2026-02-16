@@ -40,14 +40,10 @@ export class DriverManager {
     private generateDrivers(): void {
         // all drivers get pre generated now, no lazy loading
         // also handles driver regeneration on screen/layout changes
-        const currentDesktops: string[] = [];
-        for (const desktop of this.drivers.keys()) {
-            currentDesktops.push(desktop);
-        }
+        const currentDesktops = new Set<string>(this.drivers.keys());
         for (const desktop of this.ctrl.desktopFactory.createAllDesktops()) {
             const desktopString = desktop.toString();
-            const index = currentDesktops.indexOf(desktopString);
-            if (index == -1) {
+            if (!currentDesktops.has(desktopString)) {
                 // create new desktop
                 this.logger.debug(
                     "Creating new engine for desktop",
@@ -75,18 +71,14 @@ export class DriverManager {
                     defaultSplitRatio: this.config.defaultSplitRatio,
                 };
                 const engine = this.engineFactory.newEngine(config);
-                const driver = new TilingDriver(
-                    engine,
-                    this.ctrl,
-                    this.engineFactory,
-                );
+                const driver = new TilingDriver(engine, this.ctrl);
                 this.drivers.set(desktopString, driver);
                 this.ctrl.dbusManager.getSettings(
                     desktopString,
                     this.setEngineConfig.bind(this, desktop),
                 );
             } else {
-                currentDesktops.splice(index, 1);
+                currentDesktops.delete(desktopString);
             }
         }
         // remove engines for desktops that no longer exist
@@ -203,7 +195,7 @@ export class DriverManager {
             }
             // move this above to correctly set isTiled
             for (const window of driver.clients.keys()) {
-                if (!driver.untiledWindows.includes(window)) {
+                if (!driver.untiledWindows.has(window)) {
                     this.applyTiled(window);
                 }
             }
@@ -213,17 +205,15 @@ export class DriverManager {
             // make registered "untiled" clients appear untiled
             for (const window of driver.untiledWindows) {
                 const extensions = this.ctrl.windowExtensions.get(window)!;
-                // shouldve already done this if isTiled is already false?
                 if (!extensions.isTiled) {
                     continue;
                 }
                 // sometimes effects on untiled windows dont properly apply
                 let fullscreen: boolean = false;
-                if (window.fullScreen && extensions.isTiled) {
+                if (window.fullScreen) {
                     window.fullScreen = false;
                     fullscreen = true;
                 }
-                // maxmimized
                 const wasSingleMaximized = extensions.isSingleMaximized;
                 this.applyUntiled(window);
                 window.tile = null;

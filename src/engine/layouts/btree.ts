@@ -53,6 +53,7 @@ class TreeNode {
             // otherwise just move windows over
             this.parent.client = this.sibling.client;
             this.parent.children = null;
+            this.parent.sizeRatio = 0.5;
         }
         // say goodbye
         this.parent = null;
@@ -60,6 +61,43 @@ class TreeNode {
         this.sibling.sibling = null;
         this.sibling = null;
     }
+}
+
+// Shared BFS helper to find a node matching a predicate
+function findNode(
+    root: TreeNode,
+    predicate: (node: TreeNode) => boolean,
+): TreeNode | null {
+    const queue: Queue<TreeNode> = new Queue();
+    queue.enqueue(root);
+    while (queue.size > 0) {
+        const node = queue.dequeue()!;
+        if (predicate(node)) return node;
+        if (node.children != null) {
+            queue.enqueue(node.children[0]);
+            queue.enqueue(node.children[1]);
+        }
+    }
+    return null;
+}
+
+// Shared BFS helper to collect all nodes matching a predicate
+function collectNodes(
+    root: TreeNode,
+    predicate: (node: TreeNode) => boolean,
+): TreeNode[] {
+    const results: TreeNode[] = [];
+    const queue: Queue<TreeNode> = new Queue();
+    queue.enqueue(root);
+    while (queue.size > 0) {
+        const node = queue.dequeue()!;
+        if (predicate(node)) results.push(node);
+        if (node.children != null) {
+            queue.enqueue(node.children[0]);
+            queue.enqueue(node.children[1]);
+        }
+    }
+    return results;
 }
 
 class RootNode extends TreeNode {
@@ -139,7 +177,7 @@ export default class BTreeEngine extends TilingEngine {
                 this.nodeMap.set(node.children[0], tile.tiles[0]);
                 this.nodeMap.set(node.children[1], tile.tiles[1]);
 
-                // Apply default split ratio from config
+                // Apply split ratio from config or node state
                 const ratio = this.config.defaultSplitRatio;
                 tile.tiles[0].relativeSize =
                     node.sizeRatio !== 0.5 ? node.sizeRatio : ratio;
@@ -189,21 +227,8 @@ export default class BTreeEngine extends TilingEngine {
     }
 
     removeClient(client: Client) {
-        let queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        let deleteQueue: TreeNode[] = [];
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.client == client) {
-                deleteQueue.push(node);
-            }
-            if (node.children != null) {
-                for (const child of node.children) {
-                    queue.enqueue(child);
-                }
-            }
-        }
-        for (const node of deleteQueue) {
+        const node = findNode(this.rootNode, (n) => n.client === client);
+        if (node != null) {
             node.remove();
         }
     }
@@ -273,25 +298,10 @@ export default class BTreeEngine extends TilingEngine {
         return true;
     }
 
-    // Hyprland-style: swap a client with its sibling in the tree
+    // Hyprland-style: swap a client with another in the tree
     swapClients(client1: Client, client2: Client): boolean {
-        let node1: TreeNode | null = null;
-        let node2: TreeNode | null = null;
-
-        // Find both nodes
-        let queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.client === client1) node1 = node;
-            if (node.client === client2) node2 = node;
-            if (node1 && node2) break;
-            if (node.children != null) {
-                queue.enqueue(node.children[0]);
-                queue.enqueue(node.children[1]);
-            }
-        }
-
+        const node1 = findNode(this.rootNode, (n) => n.client === client1);
+        const node2 = findNode(this.rootNode, (n) => n.client === client2);
         if (!node1 || !node2) return false;
 
         // Swap the clients
@@ -303,62 +313,37 @@ export default class BTreeEngine extends TilingEngine {
 
     // Get the sibling client of a given client (for swap with sibling)
     getSiblingClient(client: Client): Client | null {
-        let queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.client === client && node.sibling?.client) {
-                return node.sibling.client;
-            }
-            if (node.children != null) {
-                queue.enqueue(node.children[0]);
-                queue.enqueue(node.children[1]);
-            }
-        }
-        return null;
+        const node = findNode(
+            this.rootNode,
+            (n) => n.client === client && n.sibling?.client != null,
+        );
+        return node?.sibling?.client ?? null;
     }
 
     // Hyprland-style: toggle split direction at the parent of a client
     toggleSplit(client: Client): boolean {
-        const queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.client === client && node.parent != null) {
-                // Handle uninitialized splitDirection (0) by setting based on current layout
-                if (node.parent.splitDirection === 0) {
-                    node.parent.splitDirection = LayoutDirection.Horizontal;
-                }
-                // Toggle between horizontal and vertical
-                node.parent.splitDirection =
-                    node.parent.splitDirection === LayoutDirection.Horizontal
-                        ? LayoutDirection.Vertical
-                        : LayoutDirection.Horizontal;
-                return true;
-            }
-            if (node.children != null) {
-                queue.enqueue(node.children[0]);
-                queue.enqueue(node.children[1]);
-            }
+        const node = findNode(
+            this.rootNode,
+            (n) => n.client === client && n.parent != null,
+        );
+        if (!node || !node.parent) return false;
+
+        // Handle uninitialized splitDirection (0) by setting based on current layout
+        if (node.parent.splitDirection === 0) {
+            node.parent.splitDirection = LayoutDirection.Horizontal;
         }
-        return false;
+        // Toggle between horizontal and vertical
+        node.parent.splitDirection =
+            node.parent.splitDirection === LayoutDirection.Horizontal
+                ? LayoutDirection.Vertical
+                : LayoutDirection.Horizontal;
+        return true;
     }
 
     // Get all clients in order (for cycling)
     getAllClients(): Client[] {
-        const clients: Client[] = [];
-        const queue: Queue<TreeNode> = new Queue();
-        queue.enqueue(this.rootNode);
-        while (queue.size > 0) {
-            const node = queue.dequeue()!;
-            if (node.client != null) {
-                clients.push(node.client);
-            }
-            if (node.children != null) {
-                queue.enqueue(node.children[0]);
-                queue.enqueue(node.children[1]);
-            }
-        }
-        return clients;
+        return collectNodes(this.rootNode, (n) => n.client != null).map(
+            (n) => n.client!,
+        );
     }
 }

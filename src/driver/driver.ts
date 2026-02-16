@@ -6,7 +6,6 @@ import {
     Client,
     EngineCapability,
     EngineConfig,
-    TilingEngineFactory,
 } from "../engine";
 import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
 import { InsertionPoint, TiledWindowStacking } from "../util/config";
@@ -27,7 +26,7 @@ export class TilingDriver {
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
     // windows that have no associated tile but are still in an engine go here
-    untiledWindows: Kwin.Window[] = [];
+    untiledWindows: Set<Kwin.Window> = new Set();
 
     get engineConfig(): EngineConfig {
         return {
@@ -59,11 +58,7 @@ export class TilingDriver {
         }
     }
 
-    constructor(
-        engine: TilingEngine,
-        ctrl: Controller,
-        _engineFactory: TilingEngineFactory, // kept for API compatibility
-    ) {
+    constructor(engine: TilingEngine, ctrl: Controller) {
         this.engine = engine;
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
@@ -282,14 +277,14 @@ export class TilingDriver {
     }
 
     untileWindow(window: Kwin.Window): void {
-        if (this.untiledWindows.includes(window)) {
+        if (this.untiledWindows.has(window)) {
             return;
         }
         const client = this.clients.get(window);
         if (client == undefined) {
             return;
         }
-        this.untiledWindows.push(window);
+        this.untiledWindows.add(window);
         try {
             this.engine.removeClient(client);
             this.engine.buildLayout();
@@ -302,10 +297,7 @@ export class TilingDriver {
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
-        let index = this.untiledWindows.indexOf(window);
-        if (index >= 0) {
-            this.untiledWindows.splice(index, 1)[0];
-        }
+        this.untiledWindows.delete(window);
         const client = this.clients.get(window)!;
         // tries to use active insertion if it should, but can fail and fall back
         let activeTile: Tile | null = null;
@@ -334,8 +326,8 @@ export class TilingDriver {
             return;
         }
         this.clients.delete(window);
-        if (this.untiledWindows.includes(window)) {
-            this.untiledWindows.splice(this.untiledWindows.indexOf(window), 1);
+        if (this.untiledWindows.has(window)) {
+            this.untiledWindows.delete(window);
             return;
         }
         try {
@@ -364,10 +356,7 @@ export class TilingDriver {
             this.clients.set(window, new Client(window));
         }
         const client = this.clients.get(window)!;
-        let index = this.untiledWindows.indexOf(window);
-        if (index >= 0) {
-            this.untiledWindows.splice(index, 1)[0];
-        }
+        this.untiledWindows.delete(window);
         try {
             let rotatedDirection = direction;
             if (
