@@ -2,7 +2,7 @@
 
 _pkgname=tessera
 pkgname=kwin-scripts-tessera
-pkgver=1.0.0
+pkgver=1.2.0
 pkgrel=1
 pkgdesc='Hyprland-style dwindle tiling for KDE Plasma 6'
 arch=('any')
@@ -13,7 +13,7 @@ depends=('kwin')
 makedepends=('npm' 'zip')
 
 source=("$_pkgname-$pkgver.tar.gz::https://github.com/IamAndelib/Tessera/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('f764fbffd69039e844b56dd35446d4bad1a699516c7d65a5e42de15eeca26a4e')
+sha256sums=('SKIP')
 
 build() {
     cd "Tessera-$pkgver"

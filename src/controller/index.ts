@@ -41,6 +41,8 @@ export class Controller {
     managedTiles: Set<Tile> = new Set();
 
     initTimer: QTimer;
+    private initRetryCount: number = 0;
+    private static readonly MAX_INIT_RETRIES: number = 50;
 
     constructor(qmlApi: Qml.Api, qmlObjects: Qml.Objects) {
         this.workspace = qmlApi.workspace;
@@ -87,6 +89,15 @@ export class Controller {
             this.workspace.activities[0] ==
                 "00000000-0000-0000-0000-000000000000"
         ) {
+            this.initRetryCount += 1;
+            if (this.initRetryCount >= Controller.MAX_INIT_RETRIES) {
+                this.logger.error(
+                    "Failed to initialize after",
+                    Controller.MAX_INIT_RETRIES,
+                    "attempts. Activities not available.",
+                );
+                return;
+            }
             this.logger.debug("Restarting init timer");
             // gradually increase time between restart calls for slower systems
             this.initTimer.interval += this.config.timerDelay;

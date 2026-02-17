@@ -1,4 +1,4 @@
-// actions/clienthook.ts - Actions performed individually on or by clients (ex. tile changes)
+// actions/windowhooks.ts - Actions performed individually on or by clients (ex. tile changes)
 
 import { MaximizeMode, Tile, Window } from "kwin-api";
 import { Controller } from "../";

@@ -141,17 +141,23 @@ kpackagetool6 -t KWin/Script -r tessera
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**
 
-| Option                | Description                                                       | Default  |
-| --------------------- | ----------------------------------------------------------------- | -------- |
-| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left     |
-| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal   |
-| `MaximizeSingle`      | Maximize when only one window exists                              | Off      |
-| `PreserveSplit`       | Keep split directions permanent                                   | Off      |
-| `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled |
-| `DefaultSplitRatio`   | Default ratio when splitting (10-90%)                             | 50%      |
-| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off      |
-| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On       |
-| `TimerDelay`          | Layout engine responsiveness (lower = snappier)                   | 10ms     |
+| Option                | Description                                                       | Default                                    |
+| --------------------- | ----------------------------------------------------------------- | ------------------------------------------ |
+| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left                                       |
+| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal                                     |
+| `MaximizeSingle`      | Maximize when only one window exists                              | Off                                        |
+| `FilterProcess`       | Process names to exclude from tiling (comma-separated)            | `krunner, yakuake, kded, polkit, plasmashell` |
+| `FilterCaption`       | Window captions to exclude from tiling (comma-separated)          | _(empty)_                                  |
+| `TilePopups`          | Include popup/transient windows in tiling                         | Off                                        |
+| `ResizeAmount`        | Pixel increment for resize shortcuts                              | 10                                         |
+| `SaveOnTileEdit`      | Persist layout changes via DBus                                   | Off                                        |
+| `PreserveSplit`       | Keep split directions permanent                                   | Off                                        |
+| `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                   |
+| `DefaultSplitRatio`   | Default ratio when splitting (10-90%)                             | 50%                                        |
+| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off                                        |
+| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On                                         |
+| `TimerDelay`          | Layout engine responsiveness (lower = snappier)                   | 10ms                                       |
+| `Debug`               | Enable debug logging                                              | Off                                        |
 
 ## Keyboard Shortcuts
 

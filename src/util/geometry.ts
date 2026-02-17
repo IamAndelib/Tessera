@@ -225,10 +225,6 @@ export class GSize implements QSize {
         });
     }
 
-    isEqual(s: QSize): boolean {
-        return s.width == this.width && s.height == this.height;
-    }
-
     // compare two sizes and grow the caller if it is too small
     fitSize(s: QSize) {
         if (this.height < s.height) {
@@ -236,15 +232,6 @@ export class GSize implements QSize {
         }
         if (this.width < s.width) {
             this.width = s.width;
-        }
-    }
-
-    write(s: QSize) {
-        if (s.width != this.width) {
-            s.width = this.width;
-        }
-        if (s.height != this.height) {
-            s.height = this.height;
         }
     }
 

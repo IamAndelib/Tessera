@@ -42,8 +42,6 @@ export interface Tile {
 
     addChild(alterSiblingRatios?: boolean): Tile;
 
-    addChildParallel(alterSiblingRatios?: boolean): Tile;
-
     split(): void;
 
     secede(): void;
@@ -99,18 +97,7 @@ export class TilingEngineFactory {
     }
 
     public newEngine(optConfig?: EngineConfig): TilingEngine {
-        let config = optConfig;
-        if (config == undefined) {
-            config = {
-                insertionPoint: this.config.insertionPoint,
-                rotateLayout: this.config.rotateLayout,
-                engineSettings: {},
-                // Hyprland-style dwindle options
-                preserveSplit: this.config.preserveSplit,
-                forceSplit: this.config.forceSplit,
-                defaultSplitRatio: this.config.defaultSplitRatio,
-            };
-        }
+        const config = optConfig ?? this.config.createDefaultEngineConfig();
         // Always use BTree engine
         const engine: TilingEngine = new BTreeEngine(config);
         engine.initEngine();

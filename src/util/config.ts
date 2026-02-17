@@ -1,6 +1,7 @@
 // config.ts - Static config class
 
 import { KWin } from "kwin-api/qml";
+import type { EngineConfig } from "../engine";
 
 export const enum InsertionPoint {
     Left = 0,
@@ -92,4 +93,15 @@ export class Config {
     preserveSplit: boolean = false; // Keep split directions permanent
     forceSplit: ForceSplit = ForceSplit.Disabled; // Force split direction
     defaultSplitRatio: number = 0.5; // Default ratio when splitting (0.1 to 0.9)
+
+    createDefaultEngineConfig(): EngineConfig {
+        return {
+            insertionPoint: this.insertionPoint,
+            rotateLayout: this.rotateLayout,
+            engineSettings: {},
+            preserveSplit: this.preserveSplit,
+            forceSplit: this.forceSplit,
+            defaultSplitRatio: this.defaultSplitRatio,
+        };
+    }
 }

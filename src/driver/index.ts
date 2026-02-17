@@ -61,15 +61,8 @@ export class DriverManager {
                     );
                     rotateLayout = !rotateLayout;
                 }
-                const config: EngineConfig = {
-                    insertionPoint: this.config.insertionPoint,
-                    rotateLayout: rotateLayout,
-                    engineSettings: {},
-                    // Hyprland-style dwindle options
-                    preserveSplit: this.config.preserveSplit,
-                    forceSplit: this.config.forceSplit,
-                    defaultSplitRatio: this.config.defaultSplitRatio,
-                };
+                const config = this.config.createDefaultEngineConfig();
+                config.rotateLayout = rotateLayout;
                 const engine = this.engineFactory.newEngine(config);
                 const driver = new TilingDriver(engine, this.ctrl);
                 this.drivers.set(desktopString, driver);
@@ -329,14 +322,7 @@ export class DriverManager {
 
     removeEngineConfig(desktop: Desktop): void {
         this.logger.debug("Removing engine config for desktop", desktop);
-        const config: EngineConfig = {
-            insertionPoint: this.config.insertionPoint,
-            rotateLayout: this.config.rotateLayout,
-            engineSettings: {},
-            preserveSplit: this.config.preserveSplit,
-            forceSplit: this.config.forceSplit,
-            defaultSplitRatio: this.config.defaultSplitRatio,
-        };
+        const config = this.config.createDefaultEngineConfig();
         const driver = this.drivers.get(desktop.toString());
         if (driver) {
             driver.engineConfig = config;

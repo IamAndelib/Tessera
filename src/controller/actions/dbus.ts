@@ -1,4 +1,4 @@
-// dbuscontroller.ts - Controller for dbus interactions
+// dbus.ts - Controller for dbus interactions
 
 import { Controller } from "../index";
 import { EngineConfig } from "../../engine";
@@ -12,7 +12,7 @@ export class DBusManager {
     private getSettingsCall: DBusCall;
     private setSettingsCall: DBusCall;
     private removeSettingsCall: DBusCall;
-    private connectedDesktops: Set<String> = new Set();
+    private connectedDesktops: Set<string> = new Set();
 
     constructor(ctrl: Controller) {
         this.logger = ctrl.logger;

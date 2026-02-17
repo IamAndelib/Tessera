@@ -89,13 +89,6 @@ export class Tile implements ITile {
         return childTile;
     }
 
-    // adds a child that will split parallel to the parent. Not really recommeneded
-    addChildParallel(alterSiblingRatios = true): Tile {
-        const childTile = new Tile(this, alterSiblingRatios);
-        childTile.layoutDirection = this.layoutDirection;
-        return childTile;
-    }
-
     // split a tile perpendicularly
     split(): void {
         this.addChild();

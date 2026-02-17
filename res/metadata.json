@@ -12,7 +12,7 @@
         "License": "MIT",
         "Name": "Tessera",
         "Version": "%VERSION%",
-        "Website": "https://github.com/mimisriz/tessera"
+        "Website": "https://github.com/IamAndelib/Tessera"
     },
     "X-KDE-ConfigModule": "kwin/effects/configs/kcm_kwin4_genericscripted",
     "X-KDE-PluginKeyword": "tessera",

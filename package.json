@@ -6,7 +6,7 @@
     "private": true,
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/mimisriz/tessera.git"
+        "url": "git+https://github.com/IamAndelib/Tessera.git"
     },
     "keywords": [
         "kwin",
@@ -19,9 +19,9 @@
     "author": "mimisriz",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/mimisriz/tessera/issues"
+        "url": "https://github.com/IamAndelib/Tessera/issues"
     },
-    "homepage": "https://github.com/mimisriz/tessera#readme",
+    "homepage": "https://github.com/IamAndelib/Tessera#readme",
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^6.7.5",
         "@typescript-eslint/parser": "^6.7.5",
