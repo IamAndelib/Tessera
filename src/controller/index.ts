@@ -55,12 +55,6 @@ export class Controller {
         this.config = new Config(this.kwinApi);
         this.logger = new Log(this.config, this.qmlObjects.root);
         this.logger.info("Tessera started!");
-        if (!this.config.debug) {
-            this.logger.info(
-                "Tessera debug is DISABLED! Enable it and restart KWin before sending logs!",
-            );
-        }
-        this.logger.debug("Config is", JSON.stringify(this.config));
 
         this.workspaceExtensions = new WorkspaceExtensions(this.workspace);
 
@@ -73,7 +67,7 @@ export class Controller {
 
         // delayed init will help with some stuff
         this.initTimer = qmlObjects.root.createTimer();
-        this.initTimer.interval = this.config.timerDelay;
+        this.initTimer.interval = Config.TIMER_DELAY;
         this.initTimer.triggered.connect(this.initCallback.bind(this));
         this.initTimer.repeat = false;
     }
@@ -100,7 +94,7 @@ export class Controller {
             }
             this.logger.debug("Restarting init timer");
             // gradually increase time between restart calls for slower systems
-            this.initTimer.interval += this.config.timerDelay;
+            this.initTimer.interval += Config.TIMER_DELAY;
             this.initTimer.restart();
             return;
         }

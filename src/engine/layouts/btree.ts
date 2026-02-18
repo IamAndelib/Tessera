@@ -177,12 +177,11 @@ export default class BTreeEngine extends TilingEngine {
                 this.nodeMap.set(node.children[0], tile.tiles[0]);
                 this.nodeMap.set(node.children[1], tile.tiles[1]);
 
-                // Apply split ratio from config or node state
-                const ratio = this.config.defaultSplitRatio;
+                // Apply split ratio from node state, defaulting to even 50/50
                 tile.tiles[0].relativeSize =
-                    node.sizeRatio !== 0.5 ? node.sizeRatio : ratio;
+                    node.sizeRatio !== 0.5 ? node.sizeRatio : 0.5;
                 tile.tiles[1].relativeSize =
-                    node.sizeRatio !== 0.5 ? 1 - node.sizeRatio : 1 - ratio;
+                    node.sizeRatio !== 0.5 ? 1 - node.sizeRatio : 0.5;
 
                 queue.enqueue({ node: node.children[0], depth: depth + 1 });
                 queue.enqueue({ node: node.children[1], depth: depth + 1 });

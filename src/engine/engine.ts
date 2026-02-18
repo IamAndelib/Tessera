@@ -16,7 +16,6 @@ export interface EngineConfig {
     // Hyprland-style dwindle options
     preserveSplit: boolean; // Keep split directions permanent
     forceSplit: number; // Force split direction (0=disabled, 1=left/top, 2=right/bottom)
-    defaultSplitRatio: number; // Default ratio when splitting (0.1 to 0.9)
 }
 
 export const enum EngineCapability {

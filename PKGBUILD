@@ -2,7 +2,7 @@
 
 _pkgname=tessera
 pkgname=kwin-scripts-tessera
-pkgver=1.2.0
+pkgver=1.3.0
 pkgrel=1
 pkgdesc='Hyprland-style dwindle tiling for KDE Plasma 6'
 arch=('any')

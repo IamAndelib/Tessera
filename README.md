@@ -28,7 +28,6 @@
 -   **Hyprland-style Options:**
     -   `PreserveSplit` — Remember split directions permanently
     -   `ForceSplit` — Force all splits to a specific direction (left/top or right/bottom)
-    -   `DefaultSplitRatio` — Set custom ratio for new splits (default 50%)
 -   **Tiled Window Stacking** — Control z-order: keep tiled windows above or below floating ones
 -   **Clean Focus Behavior** — Click any window to focus, no stacking restrictions
 -   **Keyboard Shortcuts** — Focus navigation, resizing, window insertion, layout rotation
@@ -141,23 +140,18 @@ kpackagetool6 -t KWin/Script -r tessera
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**
 
-| Option                | Description                                                       | Default                                    |
-| --------------------- | ----------------------------------------------------------------- | ------------------------------------------ |
-| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left                                       |
-| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal                                     |
-| `MaximizeSingle`      | Maximize when only one window exists                              | Off                                        |
+| Option                | Description                                                       | Default                                       |
+| --------------------- | ----------------------------------------------------------------- | --------------------------------------------- |
+| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left                                          |
+| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal                                        |
+| `MaximizeSingle`      | Maximize when only one window exists                              | Off                                           |
 | `FilterProcess`       | Process names to exclude from tiling (comma-separated)            | `krunner, yakuake, kded, polkit, plasmashell` |
-| `FilterCaption`       | Window captions to exclude from tiling (comma-separated)          | _(empty)_                                  |
-| `TilePopups`          | Include popup/transient windows in tiling                         | Off                                        |
-| `ResizeAmount`        | Pixel increment for resize shortcuts                              | 10                                         |
-| `SaveOnTileEdit`      | Persist layout changes via DBus                                   | Off                                        |
-| `PreserveSplit`       | Keep split directions permanent                                   | Off                                        |
-| `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                   |
-| `DefaultSplitRatio`   | Default ratio when splitting (10-90%)                             | 50%                                        |
-| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off                                        |
-| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On                                         |
-| `TimerDelay`          | Layout engine responsiveness (lower = snappier)                   | 10ms                                       |
-| `Debug`               | Enable debug logging                                              | Off                                        |
+| `FilterCaption`       | Window captions to exclude from tiling (comma-separated)          | _(empty)_                                     |
+| `TilePopups`          | Include popup/transient windows in tiling                         | Off                                           |
+| `PreserveSplit`       | Keep split directions permanent                                   | Off                                           |
+| `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                      |
+| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off                                           |
+| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On                                            |
 
 ## Keyboard Shortcuts
 

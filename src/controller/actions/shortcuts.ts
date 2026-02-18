@@ -265,7 +265,7 @@ export class ShortcutManager {
             return;
         }
         const tile = window.tile;
-        const resizeAmount = this.config.resizeAmount;
+        const resizeAmount = Config.RESIZE_AMOUNT;
         // dont change size for root tile
         if (tile.parent == null) {
             return;

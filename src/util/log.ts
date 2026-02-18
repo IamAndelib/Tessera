@@ -5,11 +5,9 @@ import { Root } from "../extern/qml";
 
 export class Log {
     private readonly printFn: Root["printQml"] | undefined;
-    private readonly debugEnabled: boolean;
 
-    constructor(config: Config, root: Root) {
+    constructor(_config: Config, root: Root) {
         this.printFn = root.printQml;
-        this.debugEnabled = config.debug;
     }
 
     private print(opener: string, stuff: any[]): void {
@@ -32,10 +30,7 @@ export class Log {
         this.printFn(ret);
     }
 
-    debug(...stuff: any[]): void {
-        if (!this.debugEnabled) return;
-        this.print("Tessera DBG:", stuff);
-    }
+    debug(..._stuff: any[]): void {}
 
     info(...stuff: any[]) {
         this.print("Tessera INF:", stuff);

@@ -25,6 +25,10 @@ export const enum ForceSplit {
 export class Config {
     private readonly readConfigFn: KWin["readConfig"] | undefined;
 
+    // Hardcoded optimal values
+    static readonly TIMER_DELAY: number = 10;
+    static readonly RESIZE_AMOUNT: number = 12;
+
     constructor(kwinApi: KWin) {
         this.readConfigFn = kwinApi.readConfig;
         this.readConfig();
@@ -35,7 +39,6 @@ export class Config {
         if (rc == undefined) {
             return;
         }
-        this.debug = rc("Debug", false);
         this.tilePopups = rc("TilePopups", false);
         this.filterProcess = rc(
             "FilterProcess",
@@ -47,11 +50,7 @@ export class Config {
             .split(",")
             .map((x: string) => x.trim());
 
-        this.timerDelay = rc("TimerDelay", 10);
-
         this.maximizeSingle = rc("MaximizeSingle", false);
-        this.resizeAmount = rc("ResizeAmount", 10);
-        this.saveOnTileEdit = rc("SaveOnTileEdit", false);
 
         this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.Normal);
 
@@ -62,10 +61,7 @@ export class Config {
         // Hyprland-style dwindle options
         this.preserveSplit = rc("PreserveSplit", false);
         this.forceSplit = rc("ForceSplit", ForceSplit.Disabled);
-        this.defaultSplitRatio = rc("DefaultSplitRatio", 50) / 100;
     }
-
-    debug: boolean = false;
 
     tilePopups: boolean = false;
     filterProcess: string[] = [
@@ -77,13 +73,9 @@ export class Config {
     ];
     filterCaption: string[] = [];
 
-    timerDelay: number = 10;
-
     tiledWindowStacking: TiledWindowStacking = TiledWindowStacking.Normal;
 
     maximizeSingle: boolean = false;
-    resizeAmount: number = 10;
-    saveOnTileEdit: boolean = false;
 
     insertionPoint: InsertionPoint = InsertionPoint.Left;
     rotateLayout: boolean = false;
@@ -92,7 +84,6 @@ export class Config {
     // Hyprland-style dwindle options
     preserveSplit: boolean = false; // Keep split directions permanent
     forceSplit: ForceSplit = ForceSplit.Disabled; // Force split direction
-    defaultSplitRatio: number = 0.5; // Default ratio when splitting (0.1 to 0.9)
 
     createDefaultEngineConfig(): EngineConfig {
         return {
@@ -101,7 +92,6 @@ export class Config {
             engineSettings: {},
             preserveSplit: this.preserveSplit,
             forceSplit: this.forceSplit,
-            defaultSplitRatio: this.defaultSplitRatio,
         };
     }
 }

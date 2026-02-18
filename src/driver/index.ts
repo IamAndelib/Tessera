@@ -103,7 +103,7 @@ export class DriverManager {
             }
             this.ctrl.managedTiles.add(rootTile);
             const timer = this.ctrl.qmlObjects.root.createTimer();
-            timer.interval = this.config.timerDelay;
+            timer.interval = Config.TIMER_DELAY;
             timer.triggered.connect(
                 this.layoutModifiedCallback.bind(this, rootTile, output),
             );
@@ -144,12 +144,6 @@ export class DriverManager {
             return;
         }
         driver.regenerateLayout(tile);
-        if (this.config.saveOnTileEdit) {
-            this.ctrl.dbusManager.setSettings(
-                desktop.toString(),
-                driver.engineConfig,
-            );
-        }
         this.resizingLayout = false;
     }
 

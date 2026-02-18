@@ -36,7 +36,6 @@ export class TilingDriver {
             // Hyprland-style dwindle options
             preserveSplit: this.engine.config.preserveSplit,
             forceSplit: this.engine.config.forceSplit,
-            defaultSplitRatio: this.engine.config.defaultSplitRatio,
         };
     }
 
@@ -46,7 +45,6 @@ export class TilingDriver {
         // Hyprland-style dwindle options
         this.engine.config.preserveSplit = config.preserveSplit;
         this.engine.config.forceSplit = config.forceSplit;
-        this.engine.config.defaultSplitRatio = config.defaultSplitRatio;
         // if it needs to be reset, enginesettings will be an empty object
         if (config.engineSettings != undefined) {
             this.engine.engineSettings = config.engineSettings;
