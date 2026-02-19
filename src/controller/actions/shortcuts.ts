@@ -5,7 +5,7 @@ import { Edge, Tile, Window } from "kwin-api";
 import { GPoint, Direction as GDirection } from "../../util/geometry";
 import { QPoint } from "kwin-api/qt";
 import { Log } from "../../util/log";
-import { Config } from "../../util/config";
+import { RESIZE_AMOUNT } from "../../util/config";
 import { TilingDriver } from "../../driver/driver";
 import { Client } from "../../engine";
 
@@ -265,7 +265,7 @@ export class ShortcutManager {
             return;
         }
         const tile = window.tile;
-        const resizeAmount = Config.RESIZE_AMOUNT;
+        const resizeAmount = RESIZE_AMOUNT;
         // dont change size for root tile
         if (tile.parent == null) {
             return;

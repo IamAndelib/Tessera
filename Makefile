@@ -52,7 +52,7 @@ src: tessera.mjs $(PKGDIR)
 
 tessera.mjs:
 	npm install
-	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
 
 $(PKGDIR):
 	mkdir -p $(PKGDIR)

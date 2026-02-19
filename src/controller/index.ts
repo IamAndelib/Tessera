@@ -5,7 +5,7 @@ import { Workspace, KWin } from "kwin-api/qml";
 import * as Qml from "../extern/qml";
 
 import { Log } from "../util/log";
-import { Config } from "../util/config";
+import { Config, TIMER_DELAY } from "../util/config";
 
 import { DriverManager } from "../driver";
 
@@ -67,7 +67,7 @@ export class Controller {
 
         // delayed init will help with some stuff
         this.initTimer = qmlObjects.root.createTimer();
-        this.initTimer.interval = Config.TIMER_DELAY;
+        this.initTimer.interval = TIMER_DELAY;
         this.initTimer.triggered.connect(this.initCallback.bind(this));
         this.initTimer.repeat = false;
     }
@@ -94,7 +94,7 @@ export class Controller {
             }
             this.logger.debug("Restarting init timer");
             // gradually increase time between restart calls for slower systems
-            this.initTimer.interval += Config.TIMER_DELAY;
+            this.initTimer.interval += TIMER_DELAY;
             this.initTimer.restart();
             return;
         }

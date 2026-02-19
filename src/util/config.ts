@@ -22,12 +22,12 @@ export const enum ForceSplit {
     RightBottom, // Always split to right/bottom
 }
 
+// Hardcoded optimal values
+export const TIMER_DELAY = 10;
+export const RESIZE_AMOUNT = 12;
+
 export class Config {
     private readonly readConfigFn: KWin["readConfig"] | undefined;
-
-    // Hardcoded optimal values
-    static readonly TIMER_DELAY: number = 10;
-    static readonly RESIZE_AMOUNT: number = 12;
 
     constructor(kwinApi: KWin) {
         this.readConfigFn = kwinApi.readConfig;

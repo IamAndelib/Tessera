@@ -7,7 +7,7 @@ import { QTimer } from "kwin-api/qt";
 import { Direction } from "../util/geometry";
 import { Controller } from "../controller";
 import { Log } from "../util/log";
-import { Config } from "../util/config";
+import { Config, TIMER_DELAY } from "../util/config";
 import { Desktop } from "../controller/desktop";
 
 export class DriverManager {
@@ -103,7 +103,7 @@ export class DriverManager {
             }
             this.ctrl.managedTiles.add(rootTile);
             const timer = this.ctrl.qmlObjects.root.createTimer();
-            timer.interval = Config.TIMER_DELAY;
+            timer.interval = TIMER_DELAY;
             timer.triggered.connect(
                 this.layoutModifiedCallback.bind(this, rootTile, output),
             );
