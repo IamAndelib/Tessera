@@ -62,7 +62,7 @@ sudo pacman -S --needed npm make zip git
 git clone https://github.com/IamAndelib/Tessera.git
 cd Tessera
 npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
 make res src
 zip -r tessera.kwinscript pkg
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
@@ -78,7 +78,7 @@ sudo dnf install npm make zip git
 git clone https://github.com/IamAndelib/Tessera.git
 cd Tessera
 npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
 make res src
 zip -r tessera.kwinscript pkg
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
@@ -94,7 +94,7 @@ sudo apt update && sudo apt install npm make zip git
 git clone https://github.com/IamAndelib/Tessera.git
 cd Tessera
 npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
 make res src
 zip -r tessera.kwinscript pkg
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
@@ -110,7 +110,7 @@ sudo zypper install npm-default make zip git
 git clone https://github.com/IamAndelib/Tessera.git
 cd Tessera
 npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral
+npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
 make res src
 zip -r tessera.kwinscript pkg
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
