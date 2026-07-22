@@ -89,11 +89,11 @@ export class DesktopFactory {
         return new Desktop(desktop, activity, output);
     }
 
-    public createDefaultDesktop(): Desktop {
+    public createDefaultDesktop(output?: Output): Desktop {
         return new Desktop(
             this.workspace.currentDesktop,
             this.workspace.currentActivity,
-            this.workspace.activeScreen,
+            output ?? this.workspace.activeScreen,
         );
     }
 

@@ -1,7 +1,7 @@
 // actions/basic.ts - Basic actions performed by the window manager, such as adding or deleting clients
 
 import { Window } from "kwin-api";
-import { Controller } from "../";
+import { ControllerContext } from "../context";
 import { Log } from "../../util/log";
 import { Config } from "../../util/config";
 import { WindowExtensions } from "../extensions";
@@ -9,8 +9,8 @@ import { WindowExtensions } from "../extensions";
 export class WorkspaceActions {
     private logger: Log;
     private config: Config;
-    private ctrl: Controller;
-    constructor(ctrl: Controller) {
+    private ctrl: ControllerContext;
+    constructor(ctrl: ControllerContext) {
         this.logger = ctrl.logger;
         this.config = ctrl.config;
         this.ctrl = ctrl;
@@ -82,27 +82,28 @@ export class WorkspaceActions {
 
     currentDesktopChange(): void {
         // have to set this because this function temp untiles all windows
-        this.ctrl.driverManager.buildingLayout = true;
-        // set geometry for all clients manually to avoid resizing when tiles are deleted
-        for (const window of this.ctrl.workspace.windows) {
-            if (
-                window.tile != null &&
-                window.activities.includes(
-                    this.ctrl.workspaceExtensions.lastActivity!,
-                ) &&
-                window.desktops.includes(
-                    this.ctrl.workspaceExtensions.lastDesktop,
-                )
-            ) {
-                const tile = window.tile;
-                window.tile = null;
-                window.frameGeometry = tile.absoluteGeometry;
-                window.frameGeometry.width -= 2 * tile.padding;
-                window.frameGeometry.height -= 2 * tile.padding;
-                window.frameGeometry.x += tile.padding;
-                window.frameGeometry.y += tile.padding;
+        this.ctrl.driverManager.suppressLayout(() => {
+            // set geometry for all clients manually to avoid resizing when tiles are deleted
+            for (const window of this.ctrl.workspace.windows) {
+                if (
+                    window.tile != null &&
+                    window.activities.includes(
+                        this.ctrl.workspaceExtensions.lastActivity!,
+                    ) &&
+                    window.desktops.includes(
+                        this.ctrl.workspaceExtensions.lastDesktop,
+                    )
+                ) {
+                    const tile = window.tile;
+                    window.tile = null;
+                    window.frameGeometry = tile.absoluteGeometry;
+                    window.frameGeometry.width -= 2 * tile.padding;
+                    window.frameGeometry.height -= 2 * tile.padding;
+                    window.frameGeometry.x += tile.padding;
+                    window.frameGeometry.y += tile.padding;
+                }
             }
-        }
-        this.ctrl.driverManager.rebuildLayout();
+            this.ctrl.driverManager.rebuildLayout();
+        });
     }
 }

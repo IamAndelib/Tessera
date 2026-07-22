@@ -1,12 +1,12 @@
 // log.ts - Logging support
 
-import { Config } from "./config";
 import { Root } from "../extern/qml";
 
 export class Log {
     private readonly printFn: Root["printQml"] | undefined;
+    debugEnabled: boolean = false;
 
-    constructor(_config: Config, root: Root) {
+    constructor(root: Root) {
         this.printFn = root.printQml;
     }
 
@@ -30,7 +30,11 @@ export class Log {
         this.printFn(ret);
     }
 
-    debug(..._stuff: any[]): void {}
+    debug(...stuff: any[]): void {
+        if (this.debugEnabled) {
+            this.print("Tessera DBG:", stuff);
+        }
+    }
 
     info(...stuff: any[]) {
         this.print("Tessera INF:", stuff);

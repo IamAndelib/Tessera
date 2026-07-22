@@ -1,20 +1,23 @@
 // dbus.ts - Controller for dbus interactions
 
-import { Controller } from "../index";
+import { ControllerContext } from "../context";
 import { EngineConfig } from "../../engine";
 import { Log } from "../../util/log";
 import { DBusCall } from "kwin-api/qml";
 
+type PendingOperation = () => void;
+
 export class DBusManager {
-    isConnected: boolean = false;
+    private isConnected: boolean = false;
     private logger: Log;
     private existsCall: DBusCall;
     private getSettingsCall: DBusCall;
     private setSettingsCall: DBusCall;
     private removeSettingsCall: DBusCall;
-    private connectedDesktops: Set<string> = new Set();
+    private connectedDesktops: Map<string, (cfg: EngineConfig) => void> = new Map();
+    private pendingOperations: PendingOperation[] = [];
 
-    constructor(ctrl: Controller) {
+    constructor(ctrl: ControllerContext) {
         this.logger = ctrl.logger;
         const dbus = ctrl.qmlObjects.dbus;
 
@@ -24,67 +27,74 @@ export class DBusManager {
         this.removeSettingsCall = dbus.getRemoveSettings();
 
         this.existsCall.finished.connect(this.existsCallback.bind(this));
+        this.getSettingsCall.finished.connect(this.getSettingsCallback.bind(this));
         this.existsCall.call();
     }
 
     private existsCallback() {
         this.isConnected = true;
         this.logger.debug("DBus connected");
+        for (const op of this.pendingOperations) {
+            op();
+        }
+        this.pendingOperations = [];
     }
 
-    private getSettingsCallback(
-        desktop: string,
-        setEngineConfig: (cfg: EngineConfig) => void,
-        args: any[],
-    ): void {
-        // make sure only apply changes to the correct desktop
-        if (args[0] != desktop) {
-            return;
+    private runOrQueue(fn: () => void): void {
+        if (this.isConnected) {
+            fn();
+        } else {
+            this.pendingOperations.push(fn);
         }
+    }
+
+    private getSettingsCallback(args: any[]): void {
+        const desktop = args[0] as string;
         if (args[1].length == 0) {
             return;
         }
-        let config: EngineConfig = JSON.parse(args[1]);
-        setEngineConfig(config);
+        let config: EngineConfig;
+        try {
+            config = JSON.parse(args[1]);
+        } catch (e) {
+            this.logger.error("Failed to parse DBus settings for desktop", desktop, e);
+            return;
+        }
+        const fn = this.connectedDesktops.get(desktop);
+        if (fn != undefined) {
+            fn(config);
+        }
     }
 
     setSettings(desktop: string, config: EngineConfig): void {
-        if (!this.isConnected) {
-            return;
-        }
-        const stringConfig = JSON.stringify(config);
-        this.logger.debug(
-            "Setting settings over dbus for desktop",
-            desktop,
-            "to",
-            stringConfig,
-        );
-        this.setSettingsCall.arguments = [desktop, stringConfig];
-        this.setSettingsCall.call();
+        this.runOrQueue(() => {
+            const stringConfig = JSON.stringify(config);
+            this.logger.debug(
+                "Setting settings over dbus for desktop",
+                desktop,
+                "to",
+                stringConfig,
+            );
+            this.setSettingsCall.arguments = [desktop, stringConfig];
+            this.setSettingsCall.call();
+        });
     }
 
     getSettings(desktop: string, fn: (cfg: EngineConfig) => void): void {
-        if (!this.isConnected) {
-            return;
-        }
-        this.logger.debug("Getting settings over dbus for desktop", desktop);
-        // make sure only one callback is registered per desktop
-        if (!this.connectedDesktops.has(desktop)) {
-            this.getSettingsCall.finished.connect(
-                this.getSettingsCallback.bind(this, desktop, fn),
-            );
-            this.connectedDesktops.add(desktop);
-        }
-        this.getSettingsCall.arguments = [desktop];
-        this.getSettingsCall.call();
+        this.runOrQueue(() => {
+            this.logger.debug("Getting settings over dbus for desktop", desktop);
+            this.connectedDesktops.set(desktop, fn);
+            this.getSettingsCall.arguments = [desktop];
+            this.getSettingsCall.call();
+        });
     }
 
     removeSettings(desktop: string): void {
-        if (!this.isConnected) {
-            return;
-        }
-        this.logger.debug("Removing settings over dbus for desktop", desktop);
-        this.removeSettingsCall.arguments = [desktop];
-        this.removeSettingsCall.call();
+        this.runOrQueue(() => {
+            this.logger.debug("Removing settings over dbus for desktop", desktop);
+            this.connectedDesktops.delete(desktop);
+            this.removeSettingsCall.arguments = [desktop];
+            this.removeSettingsCall.call();
+        });
     }
 }

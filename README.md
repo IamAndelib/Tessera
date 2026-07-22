@@ -136,6 +136,37 @@ The script automatically detects the existing installation and upgrades it.
 kpackagetool6 -t KWin/Script -r tessera
 ```
 
+## Requirements
+
+| Component | Minimum Version |
+| --------- | --------------- |
+| KDE Plasma | 6.0 |
+| Qt | 6.6 |
+| KDE Frameworks | 6.0 |
+| `kpackagetool6` | Ships with Plasma 6 |
+
+### Distro Notes
+
+- **Arch / Manjaro / EndeavourOS** — Rolling release; always has Plasma 6.
+- **Fedora 41+** — Ships Plasma 6.0+.
+- **openSUSE Tumbleweed** — Rolling release; always has Plasma 6.
+- **Kubuntu 25.04+** — Ships Plasma 6. **Kubuntu 24.04 LTS ships Plasma 5** and is not supported. Upgrade to 25.04+ or use the Kubuntu Backports PPA.
+- **Debian 13 (Trixie)** — First Debian release with Plasma 6. Debian 12 (Bookworm) is Plasma 5 only.
+
+## Compatibility
+
+### Conflicting Scripts
+
+**Disable any "Remember Window Position" scripts.** These scripts save and restore window geometry on launch, which directly conflicts with Tessera's tiling layout. Both scripts attempt to set `window.frameGeometry`, causing unpredictable window placement.
+
+This includes:
+- [Remember Window Positions](https://github.com/rxappdev/RememberWindowPositions) (and similar variants)
+
+### Conflicting KWin Settings
+
+- **"Ignore requested geometry"** window rules prevent Tessera from controlling tiled window positions. Do not apply this rule to tiled windows.
+- **Native Plasma tiling** (Plasma 6.4+, `Meta+T`) should be disabled if using Tessera, as both attempt to tile windows simultaneously.
+
 ## Configuration
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**

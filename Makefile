@@ -36,6 +36,7 @@ stop:
 	dbus-send --session --dest=org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript string:'$(NAME)'
 
 lint:
+	npx tsc --noEmit
 	npx eslint "src/**"
 
 res: $(PKGDIR)
@@ -52,7 +53,7 @@ src: tessera.mjs $(PKGDIR)
 
 tessera.mjs:
 	npm install
-	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
+	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2016
 
 $(PKGDIR):
 	mkdir -p $(PKGDIR)

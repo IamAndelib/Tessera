@@ -4,7 +4,7 @@ import QtQuick;
 import QtQuick.Layouts;
 import org.kde.kwin;
 import org.kde.plasma.components as PC3;
-import org.kde.plasma.core as PlasmaCore;
+import org.kde.plasma.plasma5support as PlasmaCore;
 import org.kde.kirigami as Kirigami;
 
 PlasmaCore.Dialog {

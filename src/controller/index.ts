@@ -17,8 +17,9 @@ import { WindowHookManager } from "./actions/windowhooks";
 import { SettingsDialogManager } from "./actions/settingsdialog";
 import { WorkspaceActions } from "./actions/basic";
 import { QTimer } from "kwin-api/qt";
+import { ControllerContext } from "./context";
 
-export class Controller {
+export class Controller implements ControllerContext {
     workspace: Workspace;
     options: Options;
     kwinApi: KWin;
@@ -53,7 +54,8 @@ export class Controller {
         this.desktopFactory = new DesktopFactory(this.workspace);
 
         this.config = new Config(this.kwinApi);
-        this.logger = new Log(this.config, this.qmlObjects.root);
+        this.logger = new Log(this.qmlObjects.root);
+        this.logger.debugEnabled = this.config.debug;
         this.logger.info("Tessera started!");
 
         this.workspaceExtensions = new WorkspaceExtensions(this.workspace);

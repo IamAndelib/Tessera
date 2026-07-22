@@ -39,6 +39,7 @@ export class Config {
         if (rc == undefined) {
             return;
         }
+        this.debug = rc("Debug", false);
         this.tilePopups = rc("TilePopups", false);
         this.filterProcess = rc(
             "FilterProcess",
@@ -84,6 +85,8 @@ export class Config {
     // Hyprland-style dwindle options
     preserveSplit: boolean = false; // Keep split directions permanent
     forceSplit: ForceSplit = ForceSplit.Disabled; // Force split direction
+
+    debug: boolean = false;
 
     createDefaultEngineConfig(): EngineConfig {
         return {

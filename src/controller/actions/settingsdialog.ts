@@ -1,13 +1,13 @@
 // actions/settingsdialog.ts - Actions related to signals coming from the settings dialog
 
-import { Controller } from "../";
+import { ControllerContext } from "../context";
 import { EngineConfig } from "../../engine";
 import { StringDesktop } from "../desktop";
 
 export class SettingsDialogManager {
-    private ctrl: Controller;
+    private ctrl: ControllerContext;
 
-    constructor(ctrl: Controller) {
+    constructor(ctrl: ControllerContext) {
         this.ctrl = ctrl;
         this.ctrl.qmlObjects.settings.saveSettings.connect(
             this.saveSettings.bind(this),
@@ -28,6 +28,5 @@ export class SettingsDialogManager {
         const desktopObj =
             this.ctrl.desktopFactory.createDesktopFromStrings(desktop);
         this.ctrl.driverManager.removeEngineConfig(desktopObj);
-        this.ctrl.dbusManager.removeSettings(desktopObj.toString());
     }
 }

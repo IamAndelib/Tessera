@@ -1,11 +1,11 @@
 // actions/shortcuts.ts - Shortcuts invoked directly by the user
 
-import { Controller } from "../";
-import { Edge, Tile, Window } from "kwin-api";
+import { ControllerContext } from "../context";
+import { Tile, Window } from "kwin-api";
 import { GPoint, Direction as GDirection } from "../../util/geometry";
 import { QPoint } from "kwin-api/qt";
 import { Log } from "../../util/log";
-import { RESIZE_AMOUNT } from "../../util/config";
+import { Config } from "../../util/config";
 import { TilingDriver } from "../../driver/driver";
 import { Client } from "../../engine";
 
@@ -64,11 +64,11 @@ function gdirectionFromDirection(direction: Direction): GDirection {
 }
 
 export class ShortcutManager {
-    private ctrl: Controller;
+    private ctrl: ControllerContext;
     private logger: Log;
     private config: Config;
 
-    constructor(ctrl: Controller) {
+    constructor(ctrl: ControllerContext) {
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
         this.config = ctrl.config;
@@ -166,8 +166,7 @@ export class ShortcutManager {
         const window = this.ctrl.workspace.activeWindow;
         if (!window || !this.ctrl.windowExtensions.get(window)?.isTiled)
             return null;
-        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
-        desktop.output = window.output;
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop(window.output);
         const driver = this.ctrl.driverManager.getDriver(desktop);
         if (!driver) return null;
         const client = driver.clients.get(window);
@@ -180,7 +179,11 @@ export class ShortcutManager {
         if (window == null || !this.ctrl.windowExtensions.has(window)) {
             return;
         }
-        if (this.ctrl.windowExtensions.get(window)!.isTiled) {
+        const ext = this.ctrl.windowExtensions.get(window);
+        if (ext == undefined) {
+            return;
+        }
+        if (ext.isTiled) {
             this.ctrl.driverManager.untileWindow(window);
         } else {
             this.ctrl.driverManager.addWindow(window);
@@ -264,48 +267,7 @@ export class ShortcutManager {
         if (window == null || window.tile == null) {
             return;
         }
-        const tile = window.tile;
-        const resizeAmount = RESIZE_AMOUNT;
-        // dont change size for root tile
-        if (tile.parent == null) {
-            return;
-        }
-        // kwin shouldnt nest tiles so no need to bubble up hopefully
-        const siblingCount = tile.parent.tiles.length;
-        const indexOfTile = tile.parent.tiles.indexOf(tile);
-        // should auto trigger the resize callback
-        this.logger.debug("Changing size of", tile.absoluteGeometry);
-        switch (direction) {
-            // have to put special cases for each of these if at top/bottom of layout
-            case Direction.Above:
-                if (indexOfTile == 0) {
-                    tile.resizeByPixels(-resizeAmount, Edge.BottomEdge);
-                } else {
-                    tile.resizeByPixels(-resizeAmount, Edge.TopEdge);
-                }
-                break;
-            case Direction.Below:
-                if (indexOfTile == siblingCount - 1) {
-                    tile.resizeByPixels(resizeAmount, Edge.TopEdge);
-                } else {
-                    tile.resizeByPixels(resizeAmount, Edge.BottomEdge);
-                }
-                break;
-            case Direction.Left:
-                if (indexOfTile == 0) {
-                    tile.resizeByPixels(-resizeAmount, Edge.RightEdge);
-                } else {
-                    tile.resizeByPixels(-resizeAmount, Edge.LeftEdge);
-                }
-                break;
-            case Direction.Right:
-                if (indexOfTile == siblingCount - 1) {
-                    tile.resizeByPixels(resizeAmount, Edge.LeftEdge);
-                } else {
-                    tile.resizeByPixels(resizeAmount, Edge.RightEdge);
-                }
-                break;
-        }
+        this.ctrl.driverManager.resizeWindow(window, direction);
     }
 
     rotateLayout(): void {

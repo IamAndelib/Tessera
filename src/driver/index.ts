@@ -5,7 +5,7 @@ import { EngineConfig, TilingEngineFactory } from "../engine";
 import { Window, Tile, Output } from "kwin-api";
 import { QTimer } from "kwin-api/qt";
 import { Direction } from "../util/geometry";
-import { Controller } from "../controller";
+import { ControllerContext } from "../controller/context";
 import { Log } from "../util/log";
 import { Config, TIMER_DELAY } from "../util/config";
 import { Desktop } from "../controller/desktop";
@@ -15,14 +15,27 @@ export class DriverManager {
     private engineFactory: TilingEngineFactory;
     private rootTileCallbacks: Map<Tile, QTimer> = new Map();
 
-    private ctrl: Controller;
+    private ctrl: ControllerContext;
     private logger: Log;
     private config: Config;
 
-    buildingLayout: boolean = false;
+    private _buildingLayout: boolean = false;
     resizingLayout: boolean = false;
 
-    constructor(c: Controller) {
+    get isBuildingLayout(): boolean {
+        return this._buildingLayout;
+    }
+
+    suppressLayout(fn: () => void): void {
+        this._buildingLayout = true;
+        try {
+            fn();
+        } finally {
+            this._buildingLayout = false;
+        }
+    }
+
+    constructor(c: ControllerContext) {
         this.ctrl = c;
         this.engineFactory = new TilingEngineFactory(this.ctrl.config);
         this.logger = c.logger;
@@ -90,7 +103,7 @@ export class DriverManager {
                 }
             }
             if (remove && this.rootTileCallbacks.has(tile)) {
-                this.rootTileCallbacks.get(tile)!.destroy();
+                this.rootTileCallbacks.get(tile)?.destroy();
                 this.rootTileCallbacks.delete(tile);
             }
         }
@@ -116,7 +129,7 @@ export class DriverManager {
     }
 
     private layoutModified(tile: Tile): void {
-        if (this.buildingLayout) {
+        if (this._buildingLayout) {
             return;
         }
         this.resizingLayout = true;
@@ -148,11 +161,17 @@ export class DriverManager {
     }
 
     private applyTiled(window: Window): void {
-        this.ctrl.windowExtensions.get(window)!.isTiled = true;
+        const extensions = this.ctrl.windowExtensions.get(window);
+        if (extensions != undefined) {
+            extensions.isTiled = true;
+        }
     }
 
     private applyUntiled(window: Window): void {
-        const extensions = this.ctrl.windowExtensions.get(window)!;
+        const extensions = this.ctrl.windowExtensions.get(window);
+        if (extensions == undefined) {
+            return;
+        }
         extensions.isTiled = false;
         extensions.isSingleMaximized = false;
         window.keepAbove = false;
@@ -160,59 +179,62 @@ export class DriverManager {
     }
 
     rebuildLayout(output?: Output): void {
-        this.buildingLayout = true;
-        let desktops: Desktop[];
-        if (output == undefined) {
-            desktops = this.ctrl.desktopFactory.createVisibleDesktops();
-        } else {
-            desktops = [
-                new Desktop(
-                    this.ctrl.workspace.currentDesktop,
-                    this.ctrl.workspace.currentActivity,
-                    output,
-                ),
-            ];
-        }
-        this.logger.debug("Rebuilding layout for desktops", desktops);
-        for (const desktop of desktops) {
-            const driver = this.drivers.get(desktop.toString());
-            if (!driver) {
-                this.logger.error("No driver for desktop", desktop.toString());
-                continue;
+        this._buildingLayout = true;
+        try {
+            let desktops: Desktop[];
+            if (output == undefined) {
+                desktops = this.ctrl.desktopFactory.createVisibleDesktops();
+            } else {
+                desktops = [
+                    new Desktop(
+                        this.ctrl.workspace.currentDesktop,
+                        this.ctrl.workspace.currentActivity,
+                        output,
+                    ),
+                ];
             }
-            // move this above to correctly set isTiled
-            for (const window of driver.clients.keys()) {
-                if (!driver.untiledWindows.has(window)) {
-                    this.applyTiled(window);
-                }
-            }
-            driver.buildLayout(
-                this.ctrl.workspace.tilingForScreen(desktop.output).rootTile,
-            );
-            // make registered "untiled" clients appear untiled
-            for (const window of driver.untiledWindows) {
-                const extensions = this.ctrl.windowExtensions.get(window)!;
-                if (!extensions.isTiled) {
+            this.logger.debug("Rebuilding layout for desktops", desktops);
+            for (const desktop of desktops) {
+                const driver = this.drivers.get(desktop.toString());
+                if (!driver) {
+                    this.logger.error("No driver for desktop", desktop.toString());
                     continue;
                 }
-                // sometimes effects on untiled windows dont properly apply
-                let fullscreen: boolean = false;
-                if (window.fullScreen) {
-                    window.fullScreen = false;
-                    fullscreen = true;
+                // move this above to correctly set isTiled
+                for (const window of driver.clients.keys()) {
+                    if (!driver.untiledWindows.has(window)) {
+                        this.applyTiled(window);
+                    }
                 }
-                const wasSingleMaximized = extensions.isSingleMaximized;
-                this.applyUntiled(window);
-                window.tile = null;
-                if (wasSingleMaximized) {
-                    window.setMaximize(false, false);
-                }
-                if (fullscreen) {
-                    window.fullScreen = true;
+                driver.buildLayout(
+                    this.ctrl.workspace.tilingForScreen(desktop.output).rootTile,
+                );
+                // make registered "untiled" clients appear untiled
+                for (const window of driver.untiledWindows) {
+                    const extensions = this.ctrl.windowExtensions.get(window);
+                    if (extensions == undefined || !extensions.isTiled) {
+                        continue;
+                    }
+                    // sometimes effects on untiled windows dont properly apply
+                    let fullscreen: boolean = false;
+                    if (window.fullScreen) {
+                        window.fullScreen = false;
+                        fullscreen = true;
+                    }
+                    const wasSingleMaximized = extensions.isSingleMaximized;
+                    this.applyUntiled(window);
+                    window.tile = null;
+                    if (wasSingleMaximized) {
+                        window.setMaximize(false, false);
+                    }
+                    if (fullscreen) {
+                        window.fullScreen = true;
+                    }
                 }
             }
+        } finally {
+            this._buildingLayout = false;
         }
-        this.buildingLayout = false;
     }
 
     untileWindow(window: Window, desktops?: Desktop[]): void {
@@ -273,8 +295,7 @@ export class DriverManager {
     }
 
     putWindowInTile(window: Window, tile: Tile, direction?: Direction) {
-        const desktop = this.ctrl.desktopFactory.createDefaultDesktop();
-        desktop.output = window.output;
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop(window.output);
         this.logger.debug(
             "Putting client",
             window.resourceClass,
@@ -328,6 +349,15 @@ export class DriverManager {
     // Get the driver for a specific desktop (used by shortcuts for Hyprland-style operations)
     getDriver(desktop: Desktop): TilingDriver | undefined {
         return this.drivers.get(desktop.toString());
+    }
+
+    resizeWindow(window: Window, direction: number): void {
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop(window.output);
+        const driver = this.drivers.get(desktop.toString());
+        if (!driver) {
+            return;
+        }
+        driver.resizeTile(window, direction);
     }
 
     quitFullScreen(output: Output): void {

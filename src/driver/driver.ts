@@ -8,20 +8,20 @@ import {
     EngineConfig,
 } from "../engine";
 import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
-import { InsertionPoint, TiledWindowStacking } from "../util/config";
+import { InsertionPoint, TiledWindowStacking, RESIZE_AMOUNT } from "../util/config";
 import * as Kwin from "kwin-api";
-import BiMap from "mnemonist/bi-map";
-import Queue from "mnemonist/queue";
+import { BiMap } from "../util/bimap";
+import { Queue } from "../util/queue";
 import { Log } from "../util/log";
 import { Config } from "../util/config";
-import { Controller } from "../controller";
+import { ControllerContext } from "../controller/context";
 
 export class TilingDriver {
     engine: TilingEngine;
 
     private logger: Log;
     private config: Config;
-    private ctrl: Controller;
+    private     ctrl: ControllerContext;
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
@@ -56,7 +56,7 @@ export class TilingDriver {
         }
     }
 
-    constructor(engine: TilingEngine, ctrl: Controller) {
+    constructor(engine: TilingEngine, ctrl: ControllerContext) {
         this.engine = engine;
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
@@ -89,8 +89,10 @@ export class TilingDriver {
                     continue;
                 }
                 window.tile = null;
-                this.ctrl.windowExtensions.get(window)!.isSingleMaximized =
-                    true;
+                const extensions = this.ctrl.windowExtensions.get(window);
+                if (extensions != undefined) {
+                    extensions.isSingleMaximized = true;
+                }
                 window.setMaximize(true, true);
                 window.keepAbove =
                     this.config.tiledWindowStacking ===
@@ -106,7 +108,11 @@ export class TilingDriver {
         queue.enqueue(realRootTile);
         while (queue.size > 0) {
             const tile = queue.dequeue()!;
-            const kwinTile = this.tiles.inverse.get(tile)!;
+            const kwinTile = this.tiles.inverse.get(tile);
+            if (kwinTile == undefined) {
+                this.logger.error("Tile not registered in buildLayout");
+                continue;
+            }
             this.ctrl.managedTiles.add(kwinTile);
             kwinTile.layoutDirection = tile.layoutDirection;
             // LayoutDirection: 1=Horizontal, 2=Vertical (per kwin-api)
@@ -161,7 +167,11 @@ export class TilingDriver {
                     this.logger.error("Client", client.name, "does not exist");
                     return;
                 }
-                const extensions = this.ctrl.windowExtensions.get(window)!;
+                const extensions = this.ctrl.windowExtensions.get(window);
+                if (extensions == undefined) {
+                    this.logger.error("Window extensions not found for", window.resourceClass);
+                    continue;
+                }
                 // set some properties before setting tile to make sure client shows up
                 window.minimized = false;
                 window.fullScreen = false;
@@ -296,7 +306,10 @@ export class TilingDriver {
             this.clients.set(window, new Client(window));
         }
         this.untiledWindows.delete(window);
-        const client = this.clients.get(window)!;
+        const client = this.clients.get(window);
+        if (client == undefined) {
+            return;
+        }
         // tries to use active insertion if it should, but can fail and fall back
         let activeTile: Tile | null = null;
         if (this.engine.config.insertionPoint == InsertionPoint.Active) {
@@ -353,7 +366,10 @@ export class TilingDriver {
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
-        const client = this.clients.get(window)!;
+        const client = this.clients.get(window);
+        if (client == undefined) {
+            return;
+        }
         this.untiledWindows.delete(window);
         try {
             let rotatedDirection = direction;
@@ -446,5 +462,48 @@ export class TilingDriver {
             }
         }
         return false;
+    }
+
+    resizeTile(window: Kwin.Window, direction: number): void {
+        const tile = window.tile;
+        if (tile == null || tile.parent == null) {
+            return;
+        }
+        const resizeAmount = RESIZE_AMOUNT;
+        const siblingCount = tile.parent.tiles.length;
+        const indexOfTile = tile.parent.tiles.indexOf(tile);
+        this.logger.debug("Changing size of", tile.absoluteGeometry);
+
+        // direction: 0=Above, 1=Right, 2=Below, 3=Left
+        switch (direction) {
+            case 0: // Above
+                if (indexOfTile == 0) {
+                    tile.resizeByPixels(-resizeAmount, Kwin.Edge.BottomEdge);
+                } else {
+                    tile.resizeByPixels(-resizeAmount, Kwin.Edge.TopEdge);
+                }
+                break;
+            case 2: // Below
+                if (indexOfTile == siblingCount - 1) {
+                    tile.resizeByPixels(resizeAmount, Kwin.Edge.TopEdge);
+                } else {
+                    tile.resizeByPixels(resizeAmount, Kwin.Edge.BottomEdge);
+                }
+                break;
+            case 3: // Left
+                if (indexOfTile == 0) {
+                    tile.resizeByPixels(-resizeAmount, Kwin.Edge.RightEdge);
+                } else {
+                    tile.resizeByPixels(-resizeAmount, Kwin.Edge.LeftEdge);
+                }
+                break;
+            case 1: // Right
+                if (indexOfTile == siblingCount - 1) {
+                    tile.resizeByPixels(resizeAmount, Kwin.Edge.LeftEdge);
+                } else {
+                    tile.resizeByPixels(resizeAmount, Kwin.Edge.RightEdge);
+                }
+                break;
+        }
     }
 }

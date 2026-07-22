@@ -3,9 +3,11 @@
     "KPlugin": {
         "Authors": [
             {
-                "Name": "mimisriz"
+                "Name": "mimisriz",
+                "Email": "andelibtarefsrizon@gmail.com"
             }
         ],
+        "Category": "Window Management",
         "Description": "Hyprland-style dwindle tiling for KDE Plasma 6",
         "Icon": "preferences-system-windows-effect-presentwindows",
         "Id": "%NAME%",
@@ -18,5 +20,6 @@
     "X-KDE-PluginKeyword": "tessera",
     "X-Plasma-API": "declarativescript",
     "X-Plasma-API-Minimum-Version": "6.0",
+    "X-Plasma-API-Maximum-Version": "6.2",
     "X-Plasma-MainScript": "ui/main.qml"
 }

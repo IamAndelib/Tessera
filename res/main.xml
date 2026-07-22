@@ -14,5 +14,7 @@
         <!-- Hyprland-style dwindle options -->
         <entry name="PreserveSplit" type="bool"><default>false</default></entry>
         <entry name="ForceSplit" type="int"><default>0</default></entry>
+        <!-- Debug logging -->
+        <entry name="Debug" type="bool"><default>false</default></entry>
     </group>
 </kcfg>

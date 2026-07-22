@@ -1,7 +1,7 @@
 // engine.ts - Exposes things that the layouts need
 
 import { Direction, GSize } from "../util/geometry";
-import { InsertionPoint } from "../util/config";
+import { InsertionPoint, ForceSplit } from "../util/config";
 import { LayoutDirection } from "kwin-api";
 import { QSize } from "kwin-api/qt";
 import {
@@ -15,7 +15,7 @@ export interface EngineConfig {
     rotateLayout: boolean;
     // Hyprland-style dwindle options
     preserveSplit: boolean; // Keep split directions permanent
-    forceSplit: number; // Force split direction (0=disabled, 1=left/top, 2=right/bottom)
+    forceSplit: ForceSplit; // Force split direction
 }
 
 export const enum EngineCapability {

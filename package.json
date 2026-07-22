@@ -28,7 +28,6 @@
         "esbuild": "^0.19.4",
         "eslint": "^8.51.0",
         "kwin-api": "^6.0.9",
-        "mnemonist": "^0.39.5",
         "prettier": "3.2.5",
         "typescript": "^5.2.2"
     }

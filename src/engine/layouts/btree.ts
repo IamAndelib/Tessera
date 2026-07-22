@@ -8,10 +8,10 @@ import {
     EngineSettings,
 } from "../engine";
 import { Direction } from "../../util/geometry";
-import { InsertionPoint } from "../../util/config";
+import { InsertionPoint, ForceSplit } from "../../util/config";
 import { LayoutDirection } from "kwin-api";
-import BiMap from "mnemonist/bi-map";
-import Queue from "mnemonist/queue";
+import { BiMap } from "../../util/bimap";
+import { Queue } from "../../util/queue";
 
 class TreeNode {
     parent: TreeNode | null = null;
@@ -139,7 +139,10 @@ export default class BTreeEngine extends TilingEngine {
 
         while (queue.size > 0) {
             const { node, depth } = queue.dequeue()!;
-            const tile = this.nodeMap.get(node)!;
+            const tile = this.nodeMap.get(node);
+            if (tile == undefined) {
+                continue;
+            }
 
             if (node.client != null) {
                 tile.client = node.client;
@@ -150,11 +153,10 @@ export default class BTreeEngine extends TilingEngine {
                 if (this.config.preserveSplit && node.splitDirection !== 0) {
                     // Use preserved split direction if enabled and previously set
                     splitDir = node.splitDirection;
-                } else if (this.config.forceSplit !== 0) {
+                } else if (this.config.forceSplit !== ForceSplit.Disabled) {
                     // Use forced direction if configured
-                    // forceSplit: 1=left/top (vertical), 2=right/bottom (horizontal)
                     splitDir =
-                        this.config.forceSplit === 1
+                        this.config.forceSplit === ForceSplit.LeftTop
                             ? LayoutDirection.Vertical
                             : LayoutDirection.Horizontal;
                 } else {
@@ -272,7 +274,10 @@ export default class BTreeEngine extends TilingEngine {
     regenerateLayout() {
         // just for checking resizing mostly
         for (const node of this.nodeMap.keys()) {
-            const tile = this.nodeMap.get(node)!;
+            const tile = this.nodeMap.get(node);
+            if (tile == undefined) {
+                continue;
+            }
             if (tile.tiles.length == 2) {
                 node.sizeRatio = tile.tiles[0].relativeSize;
             }

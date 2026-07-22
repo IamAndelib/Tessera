@@ -1,22 +1,27 @@
 // actions/windowhooks.ts - Actions performed individually on or by clients (ex. tile changes)
 
 import { MaximizeMode, Tile, Window } from "kwin-api";
-import { Controller } from "../";
+import { ControllerContext } from "../context";
 import { GRect } from "../../util/geometry";
 import { Log } from "../../util/log";
 import { WindowExtensions } from "../extensions";
 
 export class WindowHooks {
-    private ctrl: Controller;
+    private ctrl: ControllerContext;
     private logger: Log;
     private window: Window;
-    private extensions: WindowExtensions;
+    private extensions!: WindowExtensions;
 
-    constructor(ctrl: Controller, window: Window) {
+    constructor(ctrl: ControllerContext, window: Window) {
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
         this.window = window;
-        this.extensions = ctrl.windowExtensions.get(window)!;
+        const ext = ctrl.windowExtensions.get(window);
+        if (ext == undefined) {
+            this.logger.error("Window extensions not found for", window.resourceClass);
+            return;
+        }
+        this.extensions = ext;
 
         window.desktopsChanged.connect(this.desktopChanged.bind(this));
         window.activitiesChanged.connect(this.desktopChanged.bind(this));
@@ -66,7 +71,7 @@ export class WindowHooks {
     // have to use imrs and tilechanged
     // interactive mr handles moving out of tiles, tilechanged handles moving into tiles
     tileChanged(tile: Tile) {
-        if (this.ctrl.driverManager.buildingLayout || tile == null) {
+        if (this.ctrl.driverManager.isBuildingLayout || tile == null) {
             return;
         }
         // client is moved into managed tile from outside
@@ -123,7 +128,7 @@ export class WindowHooks {
     // should be fine if i just leave this here without a timer
     interactiveMoveResizeStepped() {
         if (
-            this.ctrl.driverManager.buildingLayout ||
+            this.ctrl.driverManager.isBuildingLayout ||
             this.ctrl.driverManager.resizingLayout ||
             !this.extensions.isTiled
         ) {
@@ -217,7 +222,7 @@ export class WindowHooks {
     }
 
     fullscreenChanged(): void {
-        if (this.ctrl.driverManager.buildingLayout) {
+        if (this.ctrl.driverManager.isBuildingLayout) {
             return;
         }
         this.handleWindowStateChange(
@@ -250,7 +255,7 @@ export class WindowHooks {
     maximizedChanged(mode: MaximizeMode) {
         const maximized = mode == MaximizeMode.MaximizeFull;
         this.extensions.maximized = maximized;
-        if (this.ctrl.driverManager.buildingLayout) {
+        if (this.ctrl.driverManager.isBuildingLayout) {
             return;
         }
         if (this.extensions.isSingleMaximized) {
@@ -266,17 +271,17 @@ export class WindowHooks {
 }
 
 export class WindowHookManager {
-    private ctrl: Controller;
+    private ctrl: ControllerContext;
     private logger: Log;
 
-    constructor(ctrl: Controller) {
+    constructor(ctrl: ControllerContext) {
         this.ctrl = ctrl;
         this.logger = this.ctrl.logger;
     }
 
     attachWindowHooks(window: Window): void {
-        const extensions = this.ctrl.windowExtensions.get(window)!;
-        if (extensions.clientHooks != null) {
+        const extensions = this.ctrl.windowExtensions.get(window);
+        if (extensions == undefined || extensions.clientHooks != null) {
             return;
         }
         this.logger.debug("Window", window.resourceClass, "hooked into script");
