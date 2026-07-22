@@ -78,7 +78,7 @@ done
 
 info "Testing install.sh package manager detection..."
 # Source just the detect function from install.sh to verify it works
-detected=$(bash -c 'source /dev/stdin <<< "$(sed -n "/^detect_pkg_manager/,/^}/p" install.sh)"; detect_pkg_manager')
+detected=$(bash -c 'source /dev/stdin <<< "$(sed -n "/^detect_pkg_manager/,/^}/p" dev/install.sh)"; detect_pkg_manager')
 if [[ -n "$detected" && "$detected" != "unknown" ]]; then
     ok "install.sh detects package manager: $detected"
 else
@@ -88,7 +88,7 @@ fi
 # ── Step 4: Verify project structure ────────────────────────────
 
 info "Checking project structure..."
-for f in Makefile package.json src/index.ts res/metadata.json res/main.xml res/config.ui res/main.js; do
+for f in dev/Makefile package.json src/index.ts res/metadata.json res/main.xml res/config.ui res/main.js; do
     if [[ -f "$f" ]]; then
         ok "Found $f"
     else
@@ -137,7 +137,7 @@ fi
 # ── Step 8: make res src (assemble package directory) ───────────
 
 info "Assembling package with make..."
-if make res src; then
+if make -f dev/Makefile res src; then
     ok "make res src succeeded"
 else
     fail "make res src failed"

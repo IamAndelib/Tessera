@@ -70,9 +70,9 @@ run_distro_test() {
 
     info "Running build test in container..."
     if podman run --rm \
-        -v "$SCRIPT_DIR:/mnt/project:ro,Z" \
+        -v "$SCRIPT_DIR/..:/mnt/project:ro,Z" \
         "$image" \
-        bash -c "$setup && rm -rf /workspace && cp -r /mnt/project /workspace && rm -rf /workspace/node_modules /workspace/.git /workspace/pkg /workspace/tessera.kwinscript /workspace/tessera.mjs && bash /workspace/test-inner.sh"; then
+        bash -c "$setup && rm -rf /workspace && cp -r /mnt/project /workspace && rm -rf /workspace/node_modules /workspace/.git /workspace/pkg /workspace/tessera.kwinscript /workspace/tessera.mjs && bash /workspace/dev/test-inner.sh"; then
         ok "$label — all checks passed"
         RESULTS+=("PASS  $label")
         ((PASS++))

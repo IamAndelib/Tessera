@@ -48,12 +48,12 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || die "Failed to cd into $SCRIPT_DIR"
 
-if [[ ! -f Makefile ]] || [[ ! -f package.json ]]; then
-    die "Cannot find Makefile and package.json in $SCRIPT_DIR"
+if [[ ! -f ../Makefile ]] || [[ ! -f ../package.json ]]; then
+    die "Cannot find Makefile and package.json in the project root"
 fi
 
-if [[ ! -f src/index.ts ]]; then
-    die "Source file src/index.ts not found. Is this the correct project directory?"
+if [[ ! -f ../src/index.ts ]]; then
+    die "Source file ../src/index.ts not found. Is this the correct project directory?"
 fi
 
 info "Installing Tessera — Hyprland-style dwindle tiling for KDE Plasma 6"
@@ -266,13 +266,14 @@ fi
 ok "npm dependencies ready."
 
 info "Bundling TypeScript with esbuild..."
-if ! npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral; then
+if ! npx esbuild --bundle ../src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral; then
     die "esbuild bundling failed. Check the output above."
 fi
 ok "Bundle created."
 
 info "Assembling package..."
-if ! make res src; then
+# Use the Makefile in the parent directory
+if ! make -f ../Makefile res src; then
     die "Package assembly failed. Check the output above."
 fi
 ok "Package assembled."
