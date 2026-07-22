@@ -137,7 +137,7 @@ fi
 # ── Step 8: make res src (assemble package directory) ───────────
 
 info "Assembling package with make..."
-if make -f dev/Makefile res src; then
+if make -C .. res src; then
     ok "make res src succeeded"
 else
     fail "make res src failed"

@@ -223,7 +223,7 @@ ok "Bundle created."
 
 info "Assembling package..."
 # Use the Makefile in the parent directory
-if ! make -f ../Makefile res src; then
+if ! make -C .. res src; then
     die "Package assembly failed. Check the output above."
 fi
 ok "Package assembled."
