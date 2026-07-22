@@ -163,7 +163,7 @@ install_packages() {
 
 # --- Dependency resolution ---
 
-REQUIRED_CMDS=(npm make zip)
+REQUIRED_CMDS=(npm make zip kpackagetool6)
 MISSING_PKGS=()
 
 for cmd in "${REQUIRED_CMDS[@]}"; do
@@ -175,56 +175,6 @@ for cmd in "${REQUIRED_CMDS[@]}"; do
         warn "'$cmd' not found (need package: $pkg)"
     fi
 done
-
-# kpackagetool6 ships with KDE Plasma 6 — if missing, KDE isn't properly installed
-if ! command -v kpackagetool6 &>/dev/null; then
-    err "kpackagetool6 not found."
-    err "This tool is part of KDE Plasma 6 and should be present on any KDE installation."
-    err "Make sure KDE Plasma 6 (and the kwin/kpackage packages) are installed."
-    case "$PKG_MANAGER" in
-        pacman)  err "Try: sudo pacman -S kwin" ;;
-        dnf)     err "Try: sudo dnf install kwin kf6-kpackage" ;;
-        apt)     err "Try: sudo apt install kwin-common" ;;
-        zypper)  err "Try: sudo zypper install kwin6 kf6-kpackage-tools" ;;
-        xbps)    err "Try: sudo xbps-install kwin" ;;
-        *)       err "Install kwin / kpackage for your distribution." ;;
-    esac
-    exit 1
-fi
-
-# --- Verify Plasma 6 ---
-
-info "Checking KDE Plasma version..."
-PLASMA_VERSION=""
-if command -v qdbus6 &>/dev/null; then
-    PLASMA_VERSION="$(qdbus6 org.kde.KWin /KWin org.kde.KWin.getVersion 2>/dev/null || true)"
-fi
-if [[ -z "$PLASMA_VERSION" ]] && command -v qdbus &>/dev/null; then
-    PLASMA_VERSION="$(qdbus org.kde.KWin /KWin org.kde.KWin.getVersion 2>/dev/null || true)"
-fi
-
-if [[ -z "$PLASMA_VERSION" ]]; then
-    err "Could not detect KDE Plasma version."
-    err "Tessera requires KDE Plasma 6. Make sure you are running a KDE Plasma 6 desktop."
-    exit 1
-fi
-
-PLASMA_MAJOR="${PLASMA_VERSION%%.*}"
-if [[ "$PLASMA_MAJOR" -ne 6 ]]; then
-    err "Tessera requires KDE Plasma 6, but you are running Plasma $PLASMA_VERSION."
-    err ""
-    err "Upgrade to Plasma 6:"
-    case "$PKG_MANAGER" in
-        pacman)  err "  Arch/Manjaro/EndeavourOS: Plasma 6 should already be available." ;;
-        dnf)     err "  Fedora 41+: Plasma 6 is the default." ;;
-        apt)     err "  Kubuntu: Upgrade to 25.04+ or add the Kubuntu Backports PPA." ;;
-        zypper)  err "  openSUSE Tumbleweed: Plasma 6 is available. For Leap, use Tumbleweed." ;;
-        *)       err "  Install KDE Plasma 6 for your distribution." ;;
-    esac
-    exit 1
-fi
-
-ok "KDE Plasma $PLASMA_VERSION detected."
 
 if [[ ${#MISSING_PKGS[@]} -gt 0 ]]; then
     info "Missing packages: ${MISSING_PKGS[*]}"
