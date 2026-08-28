@@ -354,6 +354,11 @@ export class TilingDriver {
             this.tiledCount() >= this.config.maxTiledWindows
         ) {
             this.overflowedWindows.add(window);
+            // capped-out floaters must always sit over the tiled layer,
+            // regardless of the tiled-window stacking config
+            window.keepAbove = true;
+            window.keepBelow = false;
+            this.ctrl.workspace.raiseWindow(window);
             this.logger.debug(
                 "Max tiled windows reached, leaving",
                 window.resourceClass,
