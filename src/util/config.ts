@@ -56,7 +56,7 @@ export class Config {
         // 0 = unlimited
         this.maxTiledWindows = rc("MaxTiledWindows", 5);
 
-        this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.Normal);
+        this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.KeepBelow);
 
         this.insertionPoint = rc("InsertionPoint", InsertionPoint.Right);
         this.rotateLayout = rc("RotateLayout", false);
@@ -77,7 +77,7 @@ export class Config {
     ];
     filterCaption: string[] = [];
 
-    tiledWindowStacking: TiledWindowStacking = TiledWindowStacking.Normal;
+    tiledWindowStacking: TiledWindowStacking = TiledWindowStacking.KeepBelow;
 
     maximizeSingle: boolean = false;
 

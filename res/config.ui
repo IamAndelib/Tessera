@@ -116,7 +116,7 @@ Comma separated list of process names.</string>
       <property name="text">
        <string>Normal</string>
       </property>
-     </item>
+</item>
      <item>
       <property name="text">
        <string>Keep Above (on top)</string>
@@ -127,6 +127,9 @@ Comma separated list of process names.</string>
        <string>Keep Below (on bottom)</string>
       </property>
      </item>
+     <property name="currentIndex">
+      <number>2</number>
+     </property>
     </widget>
    </item>
    <item row="31" column="1" rowspan="2" colspan="2">
