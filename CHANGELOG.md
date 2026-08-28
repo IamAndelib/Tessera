@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Default `Meta+Shift+O` keybinding for `TesseraRotateLayout`, which toggles
+  the layout orientation: two side-by-side windows become top/bottom (left on
+  top, right on bottom) and back.
+
+### Removed
+- The quick settings dialog (`TesseraOpenSettings` / `Meta+\`) and the on-screen
+  display (OSD) were removed to keep the script lean. Settings remain available
+  via System Settings > KWin Scripts > Tessera (Configure), and over DBus.
+
 ## [1.5.0] - 2026-08-29
 
 ### Added

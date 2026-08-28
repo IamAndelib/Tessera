@@ -13,7 +13,7 @@ function mk(name: string) {
 
 let failures = 0;
 function check(name: string, cond: boolean, detail?: string) {
-    console.log(
+console.log(
         (cond ? "PASS " : "FAIL ") +
             name +
             (detail !== undefined ? " :: " + detail : ""),
@@ -282,6 +282,50 @@ function engine() {
     check(
         "unregistered tile resolves to null",
         e.nodeOfTile({} as any) === null,
+    );
+}
+
+// Layout orientation transpose (rotateLayout) for the two-window case:
+// side-by-side windows become top/bottom, left on top, right on bottom
+{
+    const e = new BTreeEngine({
+        insertionPoint: 1,
+        rotateLayout: false,
+        preserveSplit: false,
+        forceSplit: 0,
+    });
+    ["A", "B"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout();
+    });
+    const rt = e.rootTile;
+    check(
+        "two windows start side by side",
+        rt.layoutDirection === H &&
+            own(rt.tiles[0]) === "A" &&
+            own(rt.tiles[1]) === "B",
+        own(rt.tiles[0]) + "|" + own(rt.tiles[1]),
+    );
+    e.config.rotateLayout = true;
+    e.buildLayout();
+    const rt2 = e.rootTile;
+    check(
+        "transposed to top/bottom (left on top, right on bottom)",
+        rt2.layoutDirection === V &&
+            own(rt2.tiles[0]) === "A" &&
+            own(rt2.tiles[1]) === "B",
+        own(rt2.tiles[0]) + "|" + own(rt2.tiles[1]) +
+            " dir=" + rt2.layoutDirection,
+    );
+    e.config.rotateLayout = false;
+    e.buildLayout();
+    const rt3 = e.rootTile;
+    check(
+        "toggling back restores side by side",
+        rt3.layoutDirection === H &&
+            own(rt3.tiles[0]) === "A" &&
+            own(rt3.tiles[1]) === "B",
+        own(rt3.tiles[0]) + "|" + own(rt3.tiles[1]),
     );
 }
 

@@ -77,7 +77,6 @@ export class ShortcutManager {
 
         const bindings: Array<[get: () => ShortcutHandler, fn: () => void]> = [
             [shortcuts.getRetileWindow, this.retileWindow.bind(this)],
-            [shortcuts.getOpenSettings, this.openSettingsDialog.bind(this)],
 
             [shortcuts.getFocusAbove, this.focus.bind(this, Direction.Above)],
             [shortcuts.getFocusBelow, this.focus.bind(this, Direction.Below)],
@@ -144,20 +143,6 @@ export class ShortcutManager {
             this.ctrl.driverManager.addWindow(window);
         }
         this.ctrl.driverManager.rebuildLayout();
-    }
-
-    openSettingsDialog(): void {
-        const settings = this.ctrl.qmlObjects.settings;
-        if (settings.isVisible()) {
-            settings.hide();
-        } else {
-            const config = this.ctrl.driverManager.getEngineConfig(
-                this.ctrl.desktopFactory.createDefaultDesktop(),
-            );
-            if (!config) return;
-            settings.setSettings(config);
-            settings.show();
-        }
     }
 
     tileInDirection(window: Window, point: QPoint | null): Tile | null {
@@ -232,9 +217,6 @@ export class ShortcutManager {
         const engineConfig = this.ctrl.driverManager.getEngineConfig(desktop);
         if (!engineConfig) return;
         engineConfig.rotateLayout = !engineConfig.rotateLayout;
-        this.ctrl.qmlObjects.osd.show(
-            "Vertical-First: " + engineConfig.rotateLayout,
-        );
         this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
     }
 
@@ -256,9 +238,7 @@ export class ShortcutManager {
         if (driver.swapHalves(kwinRootTile)) {
             this.ctrl.driverManager.rebuildLayout(window.output);
         } else {
-            this.ctrl.qmlObjects.osd.show(
-                "Cannot swap: less than 2 windows tiled",
-            );
+            this.logger.debug("Cannot swap: less than 2 windows tiled");
         }
     }
 
@@ -306,7 +286,6 @@ export class ShortcutManager {
 
         if (driver.engine.toggleSplit(client)) {
             this.ctrl.driverManager.rebuildLayout(window.output);
-            this.ctrl.qmlObjects.osd.show("Split direction toggled");
             this.logger.debug("Toggled split direction");
         }
     }
