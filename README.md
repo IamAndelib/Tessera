@@ -127,7 +127,6 @@ Configure in **System Settings > Shortcuts > Window Management** (search "Tesser
 | Action                 | Default Shortcut   | Description                                               |
 | ---------------------- | ------------------ | --------------------------------------------------------- |
 | Tile/Untile Window     | `Meta+Shift+Space` | Toggle tiling for the active window                       |
-| Open Settings          | `Meta+\`           | Open Tessera quick settings dialog                        |
 | Focus Above            | `Meta+K`           | Move focus to the window above                            |
 | Focus Below            | `Meta+J`           | Move focus to the window below                            |
 | Focus Left             | `Meta+H`           | Move focus to the window on the left                      |
@@ -149,7 +148,7 @@ Configure in **System Settings > Shortcuts > Window Management** (search "Tesser
 | Toggle Split Direction | `Meta+T`           | Toggle between horizontal and vertical split              |
 | Cycle Windows Next     | `Meta+Tab`         | Cycle focus to the next tiled window                      |
 | Cycle Windows Previous | `Meta+Shift+Tab`   | Cycle focus to the previous tiled window                  |
-| Toggle Vertical-First  | _(unset)_          | Toggle between horizontal-first and vertical-first layout |
+| Toggle Layout Orientation | `Meta+Shift+O`     | Toggle between side-by-side and top/bottom layout. Side-by-side windows become top/bottom (left on top, right on bottom). |
 
 ## Credits
 

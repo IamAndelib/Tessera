@@ -14,7 +14,6 @@ import { DesktopFactory } from "./desktop";
 import { WindowExtensions, WorkspaceExtensions } from "./extensions";
 import { ShortcutManager } from "./actions/shortcuts";
 import { WindowHookManager } from "./actions/windowhooks";
-import { SettingsDialogManager } from "./actions/settingsdialog";
 import { WorkspaceActions } from "./actions/basic";
 import { QTimer } from "kwin-api/qt";
 
@@ -29,7 +28,6 @@ export class Controller {
     dbusManager: DBusManager;
     shortcutManager: ShortcutManager;
     windowHookManager: WindowHookManager;
-    settingsDialogManager: SettingsDialogManager;
     workspaceActions: WorkspaceActions;
 
     logger: Log;
@@ -62,7 +60,6 @@ export class Controller {
         this.driverManager = new DriverManager(this);
         this.shortcutManager = new ShortcutManager(this);
         this.windowHookManager = new WindowHookManager(this);
-        this.settingsDialogManager = new SettingsDialogManager(this);
         this.workspaceActions = new WorkspaceActions(this);
 
         // delayed init will help with some stuff

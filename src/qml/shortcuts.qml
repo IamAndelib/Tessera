@@ -17,17 +17,6 @@ Item {
         sequence: "Meta+Shift+Space";
     }
     
-    function getOpenSettings() {
-        return openSettings;
-    }
-    ShortcutHandler {
-        id: openSettings;
-        
-        name: "TesseraOpenSettings";
-        text: "Tessera: Open Settings";
-        sequence: "Meta+\\";
-    }
-    
     function getFocusAbove() {
         return focusAbove;
     }
@@ -167,8 +156,8 @@ Item {
         id: rotateLayout;
 
         name: "TesseraRotateLayout";
-        text: "Tessera: Toggle Vertical-First";
-        sequence: "";
+        text: "Tessera: Toggle Layout Orientation";
+        sequence: "Meta+Shift+O";
     }
 
     // Hyprland-style shortcuts
