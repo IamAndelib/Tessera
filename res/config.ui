@@ -170,7 +170,8 @@ Comma separated list of process names.</string>
     <widget class="QComboBox" name="kcfg_InsertionPoint">
      <property name="toolTip">
       <string>Select where in the dwindle layout new windows are placed.
-"Left" and "Right" place new windows in the spiral from that direction.
+"Left" and "Right" place new windows in the spiral from that direction
+(right/bottom bias is the default).
 "Active Window" splits the currently active window's tile.</string>
      </property>
      <item>
@@ -282,6 +283,32 @@ Comma separated list of process names.</string>
      </item>
     </widget>
    </item>
+    <item row="44" column="1">
+     <widget class="QLabel" name="label_maxtiled">
+      <property name="toolTip">
+       <string>Maximum number of windows tiled per desktop before new windows float. 0 = unlimited.</string>
+      </property>
+      <property name="text">
+       <string>Max tiled windows</string>
+      </property>
+     </widget>
+    </item>
+    <item row="44" column="2">
+     <widget class="QSpinBox" name="kcfg_MaxTiledWindows">
+      <property name="toolTip">
+       <string>Maximum number of windows tiled per desktop before new windows float. 0 = unlimited.</string>
+      </property>
+      <property name="minimum">
+       <number>0</number>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="value">
+       <number>5</number>
+      </property>
+     </widget>
+    </item>
     <item row="50" column="1" colspan="2">
      <spacer name="verticalSpacer_6">
       <property name="orientation">

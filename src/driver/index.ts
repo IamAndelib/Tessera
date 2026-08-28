@@ -284,11 +284,16 @@ export class DriverManager {
             "from desktops",
             desktops,
         );
+        let promoted = false;
         for (const desktop of desktops) {
             const driver = this.drivers.get(desktop.toString());
-            if (driver) {
-                driver.removeWindow(window);
+            if (driver && driver.removeWindow(window)) {
+                promoted = true;
             }
+        }
+        // a previously floated window may have been auto-tiled into the freed slot
+        if (promoted) {
+            this.rebuildLayout();
         }
     }
 

@@ -26,6 +26,8 @@ export class TilingDriver {
     clients: BiMap<Kwin.Window, Client> = new BiMap();
     // windows that have no associated tile but are still in an engine go here
     untiledWindows: Set<Kwin.Window> = new Set();
+    // windows declined tiling because maxTiledWindows was reached (FIFO for auto-promotion)
+    private overflowedWindows: Set<Kwin.Window> = new Set();
 
     get engineConfig(): EngineConfig {
         return {
@@ -295,6 +297,49 @@ export class TilingDriver {
         }
     }
 
+    removeWindow(window: Kwin.Window): boolean {
+        // a capped-out floater may have closed without ever being registered
+        this.overflowedWindows.delete(window);
+        const client = this.clients.get(window);
+        if (client == undefined) {
+            return false;
+        }
+        this.clients.delete(window);
+        if (this.untiledWindows.has(window)) {
+            this.untiledWindows.delete(window);
+            return false;
+        }
+        try {
+            this.engine.removeClient(client);
+            this.engine.buildLayout();
+        } catch (e) {
+            this.logger.error(e);
+            return false;
+        }
+        // a tiled slot freed up: auto-promote the oldest capped-out floater
+        if (
+            this.config.maxTiledWindows > 0 &&
+            this.overflowedWindows.size > 0 &&
+            this.tiledCount() < this.config.maxTiledWindows
+        ) {
+            const oldest = this.overflowedWindows.values().next().value;
+            if (oldest != null) {
+                this.overflowedWindows.delete(oldest);
+                this.logger.debug(
+                    "Max tiled windows has a free slot, promoting",
+                    oldest.resourceClass,
+                );
+                this.addWindow(oldest);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private tiledCount(): number {
+        return this.engine.getAllClients().length;
+    }
+
     addWindow(window: Kwin.Window): void {
         // Idempotency guard: if the window is already a registered client and
         // is not marked untiled, it's already part of this driver's layout.
@@ -303,14 +348,28 @@ export class TilingDriver {
         if (this.clients.has(window) && !this.untiledWindows.has(window)) {
             return;
         }
+        // window cap: leave new windows floating once the layout is full
+        if (
+            this.config.maxTiledWindows > 0 &&
+            this.tiledCount() >= this.config.maxTiledWindows
+        ) {
+            this.overflowedWindows.add(window);
+            this.logger.debug(
+                "Max tiled windows reached, leaving",
+                window.resourceClass,
+                "floating",
+            );
+            return;
+        }
+        this.overflowedWindows.delete(window);
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
-        this.untiledWindows.delete(window);
         const client = this.clients.get(window);
         if (client == undefined) {
             return;
         }
+        this.untiledWindows.delete(window);
         // tries to use active insertion if it should, but can fail and fall back
         let activeTile: Tile | null = null;
         if (this.engine.config.insertionPoint == InsertionPoint.Active) {
@@ -326,24 +385,6 @@ export class TilingDriver {
             } else {
                 this.engine.putClientInTile(client, activeTile);
             }
-            this.engine.buildLayout();
-        } catch (e) {
-            this.logger.error(e);
-        }
-    }
-
-    removeWindow(window: Kwin.Window): void {
-        const client = this.clients.get(window);
-        if (client == undefined) {
-            return;
-        }
-        this.clients.delete(window);
-        if (this.untiledWindows.has(window)) {
-            this.untiledWindows.delete(window);
-            return;
-        }
-        try {
-            this.engine.removeClient(client);
             this.engine.buildLayout();
         } catch (e) {
             this.logger.error(e);

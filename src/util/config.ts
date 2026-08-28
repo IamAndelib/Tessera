@@ -53,9 +53,12 @@ export class Config {
 
         this.maximizeSingle = rc("MaximizeSingle", false);
 
+        // 0 = unlimited
+        this.maxTiledWindows = rc("MaxTiledWindows", 5);
+
         this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.Normal);
 
-        this.insertionPoint = rc("InsertionPoint", InsertionPoint.Left);
+        this.insertionPoint = rc("InsertionPoint", InsertionPoint.Right);
         this.rotateLayout = rc("RotateLayout", false);
         this.autoRotateLayout = rc("AutoRotateLayout", true);
 
@@ -78,7 +81,10 @@ export class Config {
 
     maximizeSingle: boolean = false;
 
-    insertionPoint: InsertionPoint = InsertionPoint.Left;
+    // max windows tiled per desktop before new ones float (0 = unlimited)
+    maxTiledWindows: number = 5;
+
+    insertionPoint: InsertionPoint = InsertionPoint.Right;
     rotateLayout: boolean = false;
     autoRotateLayout: boolean = true;
 
