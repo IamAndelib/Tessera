@@ -1,18 +1,18 @@
 // actions/windowhooks.ts - Actions performed individually on or by clients (ex. tile changes)
 
 import { MaximizeMode, Tile, Window } from "kwin-api";
-import { ControllerContext } from "../context";
+import type { Controller } from "../index";
 import { GRect } from "../../util/geometry";
 import { Log } from "../../util/log";
 import { WindowExtensions } from "../extensions";
 
 export class WindowHooks {
-    private ctrl: ControllerContext;
+    private ctrl: Controller;
     private logger: Log;
     private window: Window;
     private extensions!: WindowExtensions;
 
-    constructor(ctrl: ControllerContext, window: Window) {
+    constructor(ctrl: Controller, window: Window) {
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
         this.window = window;
@@ -271,10 +271,10 @@ export class WindowHooks {
 }
 
 export class WindowHookManager {
-    private ctrl: ControllerContext;
+    private ctrl: Controller;
     private logger: Log;
 
-    constructor(ctrl: ControllerContext) {
+    constructor(ctrl: Controller) {
         this.ctrl = ctrl;
         this.logger = this.ctrl.logger;
     }

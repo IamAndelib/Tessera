@@ -27,10 +27,11 @@ err()     { printf "${RED}:: ERROR:${NC} %s\n" "$*" >&2; }
 header()  { printf "\n${BOLD}━━━ %s ━━━${NC}\n\n" "$*"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 INNER_SCRIPT="$SCRIPT_DIR/test-inner.sh"
 
-if [[ ! -f "$SCRIPT_DIR/install.sh" ]]; then
-    err "install.sh not found in $SCRIPT_DIR"; exit 1
+if [[ ! -f "$ROOT_DIR/install.sh" ]]; then
+    err "install.sh not found in $ROOT_DIR"; exit 1
 fi
 if [[ ! -f "$INNER_SCRIPT" ]]; then
     err "test-inner.sh not found in $SCRIPT_DIR"; exit 1
@@ -97,7 +98,7 @@ run_host_test() {
 
     info "Running install.sh on host (non-interactive)..."
     # Pipe to stdin so [[ -t 0 ]] is false, triggering non-interactive mode
-    if echo "" | bash "$SCRIPT_DIR/install.sh"; then
+    if echo "" | bash "$ROOT_DIR/install.sh"; then
         ok "install.sh completed successfully on host"
     else
         err "install.sh failed on host"

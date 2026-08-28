@@ -50,11 +50,6 @@ Item {
             settings.item.hide();
         }
         
-        function saveAndHide() {
-            settings.item.saveSettings();
-            settings.item.hide();
-        }
-        
         signal saveSettings(a: var, b: var);
         signal removeSettings(a: var);
         

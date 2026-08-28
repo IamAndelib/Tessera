@@ -1,7 +1,7 @@
 // actions/basic.ts - Basic actions performed by the window manager, such as adding or deleting clients
 
 import { Window } from "kwin-api";
-import { ControllerContext } from "../context";
+import type { Controller } from "../index";
 import { Log } from "../../util/log";
 import { Config } from "../../util/config";
 import { WindowExtensions } from "../extensions";
@@ -9,8 +9,8 @@ import { WindowExtensions } from "../extensions";
 export class WorkspaceActions {
     private logger: Log;
     private config: Config;
-    private ctrl: ControllerContext;
-    constructor(ctrl: ControllerContext) {
+    private ctrl: Controller;
+    constructor(ctrl: Controller) {
         this.logger = ctrl.logger;
         this.config = ctrl.config;
         this.ctrl = ctrl;

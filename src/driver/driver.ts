@@ -1,10 +1,9 @@
 // driver/driver.ts - Mapping from engines to Kwin API
 
 import {
-    TilingEngine,
+    BTreeEngine,
     Tile,
     Client,
-    EngineCapability,
     EngineConfig,
 } from "../engine";
 import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
@@ -14,14 +13,14 @@ import { BiMap } from "../util/bimap";
 import { Queue } from "../util/queue";
 import { Log } from "../util/log";
 import { Config } from "../util/config";
-import { ControllerContext } from "../controller/context";
+import type { Controller } from "../controller";
 
 export class TilingDriver {
-    engine: TilingEngine;
+    engine: BTreeEngine;
 
     private logger: Log;
     private config: Config;
-    private     ctrl: ControllerContext;
+    private     ctrl: Controller;
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
@@ -32,7 +31,6 @@ export class TilingDriver {
         return {
             insertionPoint: this.engine.config.insertionPoint,
             rotateLayout: this.engine.config.rotateLayout,
-            engineSettings: this.engine.engineSettings,
             // Hyprland-style dwindle options
             preserveSplit: this.engine.config.preserveSplit,
             forceSplit: this.engine.config.forceSplit,
@@ -45,10 +43,6 @@ export class TilingDriver {
         // Hyprland-style dwindle options
         this.engine.config.preserveSplit = config.preserveSplit;
         this.engine.config.forceSplit = config.forceSplit;
-        // if it needs to be reset, enginesettings will be an empty object
-        if (config.engineSettings != undefined) {
-            this.engine.engineSettings = config.engineSettings;
-        }
         try {
             this.engine.buildLayout();
         } catch (e) {
@@ -56,7 +50,7 @@ export class TilingDriver {
         }
     }
 
-    constructor(engine: TilingEngine, ctrl: ControllerContext) {
+    constructor(engine: BTreeEngine, ctrl: Controller) {
         this.engine = engine;
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
@@ -302,6 +296,13 @@ export class TilingDriver {
     }
 
     addWindow(window: Kwin.Window): void {
+        // Idempotency guard: if the window is already a registered client and
+        // is not marked untiled, it's already part of this driver's layout.
+        // Re-inserting corrupts the engine tree (the same client ends up in
+        // multiple tiles).
+        if (this.clients.has(window) && !this.untiledWindows.has(window)) {
+            return;
+        }
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
@@ -376,9 +377,7 @@ export class TilingDriver {
             if (
                 rotatedDirection != null &&
                 this.engine.config.rotateLayout &&
-                (this.engine.engineCapability &
-                    EngineCapability.TranslateRotation) ==
-                    EngineCapability.TranslateRotation
+                this.engine.translatesRotation
             ) {
                 rotatedDirection = new DirectionTools(
                     rotatedDirection,

@@ -81,14 +81,6 @@ export class DesktopFactory {
         }
     }
 
-    public createDesktop(
-        desktop: VirtualDesktop,
-        activity: string,
-        output: Output,
-    ): Desktop {
-        return new Desktop(desktop, activity, output);
-    }
-
     public createDefaultDesktop(output?: Output): Desktop {
         return new Desktop(
             this.workspace.currentDesktop,

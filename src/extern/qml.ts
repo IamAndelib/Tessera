@@ -29,7 +29,6 @@ export interface Settings {
     isVisible(): boolean;
     show(): void;
     hide(): void;
-    saveAndHide(): void;
     setSettings(s: EngineConfig): void;
     saveSettings: Signal<
         (settings: EngineConfig, desktop: StringDesktop) => void

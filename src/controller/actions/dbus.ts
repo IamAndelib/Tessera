@@ -1,6 +1,6 @@
 // dbus.ts - Controller for dbus interactions
 
-import { ControllerContext } from "../context";
+import type { Controller } from "../index";
 import { EngineConfig } from "../../engine";
 import { Log } from "../../util/log";
 import { DBusCall } from "kwin-api/qml";
@@ -17,7 +17,7 @@ export class DBusManager {
     private connectedDesktops: Map<string, (cfg: EngineConfig) => void> = new Map();
     private pendingOperations: PendingOperation[] = [];
 
-    constructor(ctrl: ControllerContext) {
+    constructor(ctrl: Controller) {
         this.logger = ctrl.logger;
         const dbus = ctrl.qmlObjects.dbus;
 

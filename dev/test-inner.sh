@@ -77,8 +77,8 @@ done
 # ── Step 3: Verify install.sh detects the package manager ───────
 
 info "Testing install.sh package manager detection..."
-# Source just the detect function from install.sh to verify it works
-detected=$(bash -c 'source /dev/stdin <<< "$(sed -n "/^detect_pkg_manager/,/^}/p" dev/install.sh)"; detect_pkg_manager')
+# Source install.sh (no side effects at import time) and reuse detect_pkg_manager
+detected=$(bash -c 'source install.sh; detect_pkg_manager')
 if [[ -n "$detected" && "$detected" != "unknown" ]]; then
     ok "install.sh detects package manager: $detected"
 else
@@ -88,7 +88,7 @@ fi
 # ── Step 4: Verify project structure ────────────────────────────
 
 info "Checking project structure..."
-for f in dev/Makefile package.json src/index.ts res/metadata.json res/main.xml res/config.ui res/main.js; do
+for f in Makefile package.json src/index.ts res/metadata.json res/main.xml res/config.ui res/main.js; do
     if [[ -f "$f" ]]; then
         ok "Found $f"
     else
@@ -137,7 +137,7 @@ fi
 # ── Step 8: make res src (assemble package directory) ───────────
 
 info "Assembling package with make..."
-if make -C .. res src; then
+if make res src; then
     ok "make res src succeeded"
 else
     fail "make res src failed"
@@ -188,10 +188,11 @@ if [[ -f pkg/metadata.json ]]; then
     else
         fail "metadata.json Id is not 'tessera'"
     fi
-    if grep -q '"Version": "1.0.0"' pkg/metadata.json; then
-        ok "metadata.json Version is '1.0.0'"
+    EXPECTED_VERSION="$(node -p "require('./package.json').version")"
+    if grep -q "\"Version\": \"$EXPECTED_VERSION\"" pkg/metadata.json; then
+        ok "metadata.json Version is '$EXPECTED_VERSION'"
     else
-        fail "metadata.json Version not set correctly"
+        fail "metadata.json Version not set correctly (expected '$EXPECTED_VERSION')"
     fi
 else
     fail "pkg/metadata.json does not exist"

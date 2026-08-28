@@ -32,7 +32,7 @@
 
 ### Quick Install (Recommended)
 
-The install script automatically detects your distro, installs build dependencies, builds Tessera from source, and installs it as a KWin script. It works on any Linux distribution running KDE Plasma 6.
+The install script detects your package manager, installs missing build dependencies, builds Tessera from source, and installs it as a KWin script. It works on any Linux distribution running KDE Plasma 6.
 
 ```bash
 git clone https://github.com/IamAndelib/Tessera.git
@@ -42,95 +42,35 @@ cd Tessera
 
 > **Note:** Do not run `install.sh` as root. It uses `sudo` internally only for package installation.
 
----
+To upgrade later, `git pull` and re-run `./install.sh`.
 
-### Manual Install (Per-Distro)
+### Manual Install
 
-If you prefer to install dependencies manually, follow the instructions for your distribution below, then run the build and install steps.
+If you prefer to install the build dependencies yourself:
 
-#### Arch Linux / Manjaro / EndeavourOS
+| Distribution | Install build dependencies |
+| ----------- | -------------------------- |
+| Arch / Manjaro / EndeavourOS | `sudo pacman -S --needed npm make zip git` |
+| Fedora / RHEL / CentOS Stream | `sudo dnf install npm make zip git` |
+| Ubuntu / Kubuntu / Debian / Linux Mint | `sudo apt update && sudo apt install npm make zip git` |
+| openSUSE Tumbleweed / Leap | `sudo zypper install npm-default make zip git` |
+
+Then build and install:
 
 ```bash
-# Install dependencies
-sudo pacman -S --needed npm make zip git
-
-# Clone and install
 git clone https://github.com/IamAndelib/Tessera.git
 cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
-make res src
-zip -r tessera.kwinscript pkg
+make build
 kpackagetool6 -t KWin/Script -i tessera.kwinscript
 ```
-
-#### Fedora / RHEL / CentOS Stream
-
-```bash
-# Install dependencies
-sudo dnf install npm make zip git
-
-# Clone and install
-git clone https://github.com/IamAndelib/Tessera.git
-cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
-make res src
-zip -r tessera.kwinscript pkg
-kpackagetool6 -t KWin/Script -i tessera.kwinscript
-```
-
-#### Ubuntu / Kubuntu / Debian / Linux Mint
-
-```bash
-# Install dependencies
-sudo apt update && sudo apt install npm make zip git
-
-# Clone and install
-git clone https://github.com/IamAndelib/Tessera.git
-cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
-make res src
-zip -r tessera.kwinscript pkg
-kpackagetool6 -t KWin/Script -i tessera.kwinscript
-```
-
-#### openSUSE Tumbleweed / Leap
-
-```bash
-# Install dependencies
-sudo zypper install npm-default make zip git
-
-# Clone and install
-git clone https://github.com/IamAndelib/Tessera.git
-cd Tessera
-npm install
-npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2020
-make res src
-zip -r tessera.kwinscript pkg
-kpackagetool6 -t KWin/Script -i tessera.kwinscript
-```
-
----
-
-### Upgrading
-
-To upgrade an existing installation, pull the latest changes and re-run the install script:
-
-```bash
-cd Tessera
-git pull
-./install.sh
-```
-
-The script automatically detects the existing installation and upgrades it.
 
 ### Uninstall
 
 ```bash
-kpackagetool6 -t KWin/Script -r tessera
+./install.sh --uninstall
 ```
+
+or manually: `kpackagetool6 -t KWin/Script -r tessera`
 
 ## Requirements
 

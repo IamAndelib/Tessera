@@ -1,3 +1,2 @@
-// literal downgrade in kwin made it so every script has to have a main.js or the script refuses to install????
-
-print("Tessera INF: mfw");
+// required stub — KWin will not install a Script without a contents/code/main.js
+// the real entry point is main.mjs (bundled from src/index.ts)

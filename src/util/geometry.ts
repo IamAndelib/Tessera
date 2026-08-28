@@ -10,6 +10,18 @@ export const enum Direction {
     Vertical = 1 << 2,
 }
 
+// rotate clockwise 90 deg
+const ROTATE_CW: Readonly<Record<number, Direction>> = {
+    [Direction.None]: Direction.Up | Direction.Vertical, // bottom-left, left-leaning
+    [Direction.Up]: Direction.Right | Direction.Up | Direction.Vertical,
+    [Direction.Right]: Direction.Vertical, // bottom-right, right-leaning
+    [Direction.Vertical]: Direction.Up, // bottom-left, bottom-leaning
+    [Direction.Up | Direction.Right]: Direction.Right | Direction.Vertical,
+    [Direction.Up | Direction.Vertical]: Direction.Up | Direction.Right,
+    [Direction.Right | Direction.Vertical]: Direction.None,
+    [Direction.Up | Direction.Right | Direction.Vertical]: Direction.Right,
+};
+
 export class DirectionTools {
     private d: Direction;
 
@@ -19,56 +31,7 @@ export class DirectionTools {
 
     // rotate clockwise 90 deg
     rotateCw(): Direction {
-        // it will always have the vertical component inverted
-        let ret =
-            (this.d & Direction.Vertical) == Direction.Vertical
-                ? Direction.None
-                : Direction.Vertical;
-        if ((this.d & Direction.Up) == Direction.Up) {
-            if ((this.d & Direction.Right) == Direction.Right) {
-                // top right
-                ret |= Direction.Right;
-            } else {
-                // top left
-                ret |= Direction.Right | Direction.Up;
-            }
-        } else {
-            if ((this.d & Direction.Right) == Direction.Right) {
-                // bottom right (becomes bottom left or none)
-                ret |= Direction.None;
-            } else {
-                // bottom left
-                ret |= Direction.Up;
-            }
-        }
-        return ret;
-    }
-
-    // rotate counterclockwise 90 deg
-    rotateCcw(): Direction {
-        // it will always have the vertical component inverted
-        let ret =
-            (this.d & Direction.Vertical) == Direction.Vertical
-                ? Direction.None
-                : Direction.Vertical;
-        if ((this.d & Direction.Up) == Direction.Up) {
-            if ((this.d & Direction.Right) == Direction.Right) {
-                // top right
-                ret |= Direction.Up;
-            } else {
-                // top left (becomes bottom left or none)
-                ret |= Direction.None;
-            }
-        } else {
-            if ((this.d & Direction.Right) == Direction.Right) {
-                // bottom right (becomes bottom left or none)
-                ret |= Direction.Up | Direction.Right;
-            } else {
-                // bottom left
-                ret |= Direction.Right;
-            }
-        }
-        return ret;
+        return ROTATE_CW[this.d];
     }
 }
 

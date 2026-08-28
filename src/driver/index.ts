@@ -1,21 +1,20 @@
 // driver.ts - Interface from drivers/engines to the controller
 
 import { TilingDriver } from "./driver";
-import { EngineConfig, TilingEngineFactory } from "../engine";
+import { BTreeEngine, EngineConfig } from "../engine";
 import { Window, Tile, Output } from "kwin-api";
 import { QTimer } from "kwin-api/qt";
 import { Direction } from "../util/geometry";
-import { ControllerContext } from "../controller/context";
+import type { Controller } from "../controller";
 import { Log } from "../util/log";
 import { Config, TIMER_DELAY } from "../util/config";
 import { Desktop } from "../controller/desktop";
 
 export class DriverManager {
     private drivers: Map<string, TilingDriver> = new Map();
-    private engineFactory: TilingEngineFactory;
     private rootTileCallbacks: Map<Tile, QTimer> = new Map();
 
-    private ctrl: ControllerContext;
+    private ctrl: Controller;
     private logger: Log;
     private config: Config;
 
@@ -35,9 +34,8 @@ export class DriverManager {
         }
     }
 
-    constructor(c: ControllerContext) {
+    constructor(c: Controller) {
         this.ctrl = c;
-        this.engineFactory = new TilingEngineFactory(this.ctrl.config);
         this.logger = c.logger;
         this.config = c.config;
     }
@@ -76,7 +74,7 @@ export class DriverManager {
                 }
                 const config = this.config.createDefaultEngineConfig();
                 config.rotateLayout = rotateLayout;
-                const engine = this.engineFactory.newEngine(config);
+                const engine = new BTreeEngine(config);
                 const driver = new TilingDriver(engine, this.ctrl);
                 this.drivers.set(desktopString, driver);
                 this.ctrl.dbusManager.getSettings(

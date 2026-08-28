@@ -75,7 +75,16 @@ export class WindowExtensions {
         );
         window.outputChanged.connect(this.previousDesktopsChanged.bind(this));
 
-        this.previousDesktopsChanged();
+        // Seed both snapshots with the window's current desktops so the
+        // first change event produces a correct diff. Leaving the previous
+        // snapshot empty would make it look like the window arrived on every
+        // desktop it touches, causing duplicate inserts and stale entries on
+        // desktops it no longer occupies.
+        const initial = this.desktopFactory.createDesktopsFromWindow(
+            this.window,
+        );
+        this.previousDesktops = initial.slice();
+        this.previousDesktopsInternal = initial;
     }
 
     private previousDesktopsChanged(): void {

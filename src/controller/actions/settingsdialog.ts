@@ -1,13 +1,13 @@
 // actions/settingsdialog.ts - Actions related to signals coming from the settings dialog
 
-import { ControllerContext } from "../context";
+import type { Controller } from "../index";
 import { EngineConfig } from "../../engine";
 import { StringDesktop } from "../desktop";
 
 export class SettingsDialogManager {
-    private ctrl: ControllerContext;
+    private ctrl: Controller;
 
-    constructor(ctrl: ControllerContext) {
+    constructor(ctrl: Controller) {
         this.ctrl = ctrl;
         this.ctrl.qmlObjects.settings.saveSettings.connect(
             this.saveSettings.bind(this),

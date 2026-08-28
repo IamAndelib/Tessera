@@ -92,7 +92,6 @@ export class Config {
         return {
             insertionPoint: this.insertionPoint,
             rotateLayout: this.rotateLayout,
-            engineSettings: {},
             preserveSplit: this.preserveSplit,
             forceSplit: this.forceSplit,
         };

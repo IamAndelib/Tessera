@@ -1,7 +1,8 @@
 // actions/shortcuts.ts - Shortcuts invoked directly by the user
 
-import { ControllerContext } from "../context";
+import type { Controller } from "../index";
 import { Tile, Window } from "kwin-api";
+import type { ShortcutHandler } from "kwin-api/qml";
 import { GPoint, Direction as GDirection } from "../../util/geometry";
 import { QPoint } from "kwin-api/qt";
 import { Log } from "../../util/log";
@@ -64,97 +65,51 @@ function gdirectionFromDirection(direction: Direction): GDirection {
 }
 
 export class ShortcutManager {
-    private ctrl: ControllerContext;
+    private ctrl: Controller;
     private logger: Log;
     private config: Config;
 
-    constructor(ctrl: ControllerContext) {
+    constructor(ctrl: Controller) {
         this.ctrl = ctrl;
         this.logger = ctrl.logger;
         this.config = ctrl.config;
         const shortcuts = ctrl.qmlObjects.shortcuts;
-        shortcuts
-            .getRetileWindow()
-            .activated.connect(this.retileWindow.bind(this));
-        shortcuts
-            .getOpenSettings()
-            .activated.connect(this.openSettingsDialog.bind(this));
 
-        shortcuts
-            .getFocusAbove()
-            .activated.connect(this.focus.bind(this, Direction.Above));
-        shortcuts
-            .getFocusBelow()
-            .activated.connect(this.focus.bind(this, Direction.Below));
-        shortcuts
-            .getFocusLeft()
-            .activated.connect(this.focus.bind(this, Direction.Left));
-        shortcuts
-            .getFocusRight()
-            .activated.connect(this.focus.bind(this, Direction.Right));
+        const bindings: Array<[get: () => ShortcutHandler, fn: () => void]> = [
+            [shortcuts.getRetileWindow, this.retileWindow.bind(this)],
+            [shortcuts.getOpenSettings, this.openSettingsDialog.bind(this)],
 
-        shortcuts
-            .getInsertAbove()
-            .activated.connect(this.insert.bind(this, Direction.Above));
-        shortcuts
-            .getInsertBelow()
-            .activated.connect(this.insert.bind(this, Direction.Below));
-        shortcuts
-            .getInsertLeft()
-            .activated.connect(this.insert.bind(this, Direction.Left));
-        shortcuts
-            .getInsertRight()
-            .activated.connect(this.insert.bind(this, Direction.Right));
+            [shortcuts.getFocusAbove, this.focus.bind(this, Direction.Above)],
+            [shortcuts.getFocusBelow, this.focus.bind(this, Direction.Below)],
+            [shortcuts.getFocusLeft, this.focus.bind(this, Direction.Left)],
+            [shortcuts.getFocusRight, this.focus.bind(this, Direction.Right)],
 
-        shortcuts
-            .getResizeAbove()
-            .activated.connect(this.resize.bind(this, Direction.Above));
-        shortcuts
-            .getResizeBelow()
-            .activated.connect(this.resize.bind(this, Direction.Below));
-        shortcuts
-            .getResizeLeft()
-            .activated.connect(this.resize.bind(this, Direction.Left));
-        shortcuts
-            .getResizeRight()
-            .activated.connect(this.resize.bind(this, Direction.Right));
+            [shortcuts.getInsertAbove, this.insert.bind(this, Direction.Above)],
+            [shortcuts.getInsertBelow, this.insert.bind(this, Direction.Below)],
+            [shortcuts.getInsertLeft, this.insert.bind(this, Direction.Left)],
+            [shortcuts.getInsertRight, this.insert.bind(this, Direction.Right)],
 
-        shortcuts
-            .getRotateLayout()
-            .activated.connect(this.rotateLayout.bind(this));
+            [shortcuts.getResizeAbove, this.resize.bind(this, Direction.Above)],
+            [shortcuts.getResizeBelow, this.resize.bind(this, Direction.Below)],
+            [shortcuts.getResizeLeft, this.resize.bind(this, Direction.Left)],
+            [shortcuts.getResizeRight, this.resize.bind(this, Direction.Right)],
 
-        // Hyprland-style shortcuts
-        shortcuts.getSwapHalves().activated.connect(this.swapHalves.bind(this));
-        shortcuts
-            .getSwapWithSibling()
-            .activated.connect(this.swapWithSibling.bind(this));
-        shortcuts
-            .getSwapAbove()
-            .activated.connect(
-                this.swapInDirection.bind(this, Direction.Above),
-            );
-        shortcuts
-            .getSwapBelow()
-            .activated.connect(
-                this.swapInDirection.bind(this, Direction.Below),
-            );
-        shortcuts
-            .getSwapLeft()
-            .activated.connect(this.swapInDirection.bind(this, Direction.Left));
-        shortcuts
-            .getSwapRight()
-            .activated.connect(
-                this.swapInDirection.bind(this, Direction.Right),
-            );
-        shortcuts
-            .getToggleSplit()
-            .activated.connect(this.toggleSplit.bind(this));
-        shortcuts
-            .getCycleNext()
-            .activated.connect(this.cycleNext.bind(this, false));
-        shortcuts
-            .getCyclePrev()
-            .activated.connect(this.cycleNext.bind(this, true));
+            [shortcuts.getRotateLayout, this.rotateLayout.bind(this)],
+
+            // Hyprland-style shortcuts
+            [shortcuts.getSwapHalves, this.swapHalves.bind(this)],
+            [shortcuts.getSwapWithSibling, this.swapWithSibling.bind(this)],
+            [shortcuts.getSwapAbove, this.swapInDirection.bind(this, Direction.Above)],
+            [shortcuts.getSwapBelow, this.swapInDirection.bind(this, Direction.Below)],
+            [shortcuts.getSwapLeft, this.swapInDirection.bind(this, Direction.Left)],
+            [shortcuts.getSwapRight, this.swapInDirection.bind(this, Direction.Right)],
+            [shortcuts.getToggleSplit, this.toggleSplit.bind(this)],
+            [shortcuts.getCycleNext, this.cycleNext.bind(this, false)],
+            [shortcuts.getCyclePrev, this.cycleNext.bind(this, true)],
+        ];
+        for (const [get, fn] of bindings) {
+            get().activated.connect(fn);
+        }
     }
 
     // Shared helper: gets the active window's driver and engine client, or null
@@ -243,9 +198,9 @@ export class ShortcutManager {
             return;
         }
         const point = pointInDirection(window, direction);
-        this.logger.debug("Moving", window.resourceClass);
-        this.ctrl.driverManager.untileWindow(window);
-        this.ctrl.driverManager.rebuildLayout(window.output);
+        // Resolve the target tile from the current layout before removing the
+        // window. Removing it only redistributes sibling sizes, so the picked
+        // tile stays valid and the intermediate rebuild is unnecessary.
         let tile = this.tileInDirection(window, point);
         if (tile == null) {
             // usually this works
@@ -254,6 +209,8 @@ export class ShortcutManager {
                 tile = tile.tiles[0];
             }
         }
+        this.logger.debug("Moving", window.resourceClass);
+        this.ctrl.driverManager.untileWindow(window);
         this.ctrl.driverManager.putWindowInTile(
             window,
             tile,

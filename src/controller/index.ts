@@ -1,7 +1,7 @@
 // controller.ts - Main controller object of the script
 
 import { Options, Tile, Window } from "kwin-api";
-import { Workspace, KWin } from "kwin-api/qml";
+import { Workspace } from "kwin-api/qml";
 import * as Qml from "../extern/qml";
 
 import { Log } from "../util/log";
@@ -17,12 +17,10 @@ import { WindowHookManager } from "./actions/windowhooks";
 import { SettingsDialogManager } from "./actions/settingsdialog";
 import { WorkspaceActions } from "./actions/basic";
 import { QTimer } from "kwin-api/qt";
-import { ControllerContext } from "./context";
 
-export class Controller implements ControllerContext {
+export class Controller {
     workspace: Workspace;
     options: Options;
-    kwinApi: KWin;
     qmlObjects: Qml.Objects;
 
     desktopFactory: DesktopFactory;
@@ -48,12 +46,12 @@ export class Controller implements ControllerContext {
     constructor(qmlApi: Qml.Api, qmlObjects: Qml.Objects) {
         this.workspace = qmlApi.workspace;
         this.options = qmlApi.options;
-        this.kwinApi = qmlApi.kwin;
         this.qmlObjects = qmlObjects;
 
         this.desktopFactory = new DesktopFactory(this.workspace);
 
-        this.config = new Config(this.kwinApi);
+        const kwinApi = qmlApi.kwin;
+        this.config = new Config(kwinApi);
         this.logger = new Log(this.qmlObjects.root);
         this.logger.debugEnabled = this.config.debug;
         this.logger.info("Tessera started!");

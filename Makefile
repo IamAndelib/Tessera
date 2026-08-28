@@ -4,37 +4,13 @@ VERSION = $(shell npm pkg get version | tr -d '"')
 PKGFILE = $(NAME).kwinscript
 PKGDIR = pkg
 
-.NOTPARALLEL: all
-
-all: build install cleanall
-
 build: res src
 	zip -r $(PKGFILE) $(PKGDIR)
 
 $(PKGFILE): build
 
-install: $(PKGFILE)
-	kpackagetool6 -t KWin/Script -s $(NAME) \
-		&& kpackagetool6 -t KWin/Script -u $(PKGFILE) \
-		|| kpackagetool6 -t KWin/Script -i $(PKGFILE)
-
-uninstall:
-	kpackagetool6 -t KWin/Script -r $(NAME)
-
-clean: $(PKGDIR)
-	rm -r $(PKGDIR)
-
-cleanpkg: $(PKGFILE)
-	rm $(PKGFILE)
-
-cleanall: clean cleanpkg
-
-start: stop
-	dbus-send --session --dest=org.kde.KWin /Scripting org.kde.kwin.Scripting.loadScript string:'' string:'$(NAME)'
-
-stop:
-	dbus-send --session --dest=org.kde.KWin /Scripting org.kde.kwin.Scripting.unloadScript string:'$(NAME)'
-
+# install/uninstall/restart are handled by ./install.sh — keep this
+# Makefile build-only so there is a single installation code path.
 lint:
 	npx tsc --noEmit
 	npx eslint "src/**"
@@ -51,6 +27,9 @@ src: tessera.mjs $(PKGDIR)
 	mv -f tessera.mjs $(PKGDIR)/contents/code/main.mjs
 	cp -f src/qml/* $(PKGDIR)/contents/ui/
 
+# es2016 is pinned on purpose: KWin's QML JS engine does not parse newer
+# syntax (e.g. ES2022 class static fields), so keep the bundle conservative.
+# The README manual-build command must stay in sync with this target.
 tessera.mjs:
 	npm install
 	npx esbuild --bundle src/index.ts --outfile=tessera.mjs --format=esm --platform=neutral --target=es2016
@@ -60,3 +39,6 @@ $(PKGDIR):
 	mkdir -p $(PKGDIR)/contents/code
 	mkdir $(PKGDIR)/contents/config
 	mkdir $(PKGDIR)/contents/ui
+
+clean:
+	rm -rf $(PKGDIR) $(PKGFILE) tessera.mjs
