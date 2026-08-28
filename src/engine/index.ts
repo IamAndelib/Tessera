@@ -466,6 +466,43 @@ export class BTreeEngine {
         );
     }
 
+    // Get all clients in a specific subtree (used for per-half caps)
+    clientCount(node: TreeNode | null = this.rootNode): number {
+        if (node == null) {
+            return 0;
+        }
+        return collectNodes(node, (n) => n.client != null).length;
+    }
+
+    // Root-level child the dwindle inserts into (the "pile" half), or the root
+    // itself while there are fewer than two halves
+    dwindleSideNode(): TreeNode | null {
+        if (this.rootNode.children == null) {
+            return this.rootNode;
+        }
+        return this.config.insertionPoint == InsertionPoint.Left
+            ? this.rootNode.children[0]
+            : this.rootNode.children[1];
+    }
+
+    // The root-level child containing the given node, or the root itself if it
+    // has no halves yet
+    rootChildNode(node: TreeNode | null): TreeNode | null {
+        if (node == null) {
+            return null;
+        }
+        let current: TreeNode = node;
+        while (current.parent != null && current.parent.parent != null) {
+            current = current.parent;
+        }
+        return current;
+    }
+
+    // Resolve the internal node for a tile (requires a recent buildLayout)
+    nodeOfTile(tile: Tile): TreeNode | null {
+        return this.nodeMap.inverse.get(tile) ?? null;
+    }
+
     private rootNode: RootNode = new RootNode();
     private nodeMap: BiMap<TreeNode, Tile> = new BiMap();
 }

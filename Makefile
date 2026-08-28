@@ -15,6 +15,19 @@ lint:
 	npx tsc --noEmit
 	npx eslint "src/**"
 
+format-check:
+	npx prettier --check "src/**/*.ts" "test/**/*.ts"
+
+format:
+	npx prettier --write "src/**/*.ts" "test/**/*.ts"
+
+# Engine unit harness: deterministic, runs in plain node (no KWin). The
+# kwin-api aliases redirect the Qt bindings to test/stubs/. The longer
+# alias wins for "kwin-api/..." subpaths.
+test:
+	npx esbuild --bundle test/engine-harness.ts --outfile=test-harness.mjs --format=esm --platform=neutral --target=es2016 --alias:kwin-api=./test/stubs/kwin-api-stub.mjs --alias:kwin-api/qt=./test/stubs/kwin-api-qt-stub.mjs
+	node test-harness.mjs
+
 res: $(PKGDIR)
 	cp -f res/metadata.json $(PKGDIR)/
 	cp -f res/main.xml $(PKGDIR)/contents/config/
@@ -41,4 +54,6 @@ $(PKGDIR):
 	mkdir $(PKGDIR)/contents/ui
 
 clean:
-	rm -rf $(PKGDIR) $(PKGFILE) tessera.mjs
+	rm -rf $(PKGDIR) $(PKGFILE) tessera.mjs test-harness.mjs
+
+.PHONY: build lint format-check format test res src clean

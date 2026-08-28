@@ -5,6 +5,7 @@ node_modules/
 pkg/
 *.kwinscript
 *.mjs
+!test/stubs/*.mjs
 
 # IDE
 .idea/

@@ -312,6 +312,32 @@ Comma separated list of process names.</string>
       </property>
      </widget>
     </item>
+    <item row="45" column="1">
+     <widget class="QLabel" name="label_maxperhalf">
+      <property name="toolTip">
+       <string>Maximum number of windows tiled per layout half before new windows float. The half is the side the next window targets (the dwindle pile, or the active window's side for active insertion). 0 = unlimited.</string>
+      </property>
+      <property name="text">
+       <string>Max tiled windows per half</string>
+      </property>
+     </widget>
+    </item>
+    <item row="45" column="2">
+     <widget class="QSpinBox" name="kcfg_MaxTiledWindowsPerHalf">
+      <property name="toolTip">
+       <string>Maximum number of windows tiled per layout half before new windows float. The half is the side the next window targets (the dwindle pile, or the active window's side for active insertion). 0 = unlimited.</string>
+      </property>
+      <property name="minimum">
+       <number>0</number>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="value">
+       <number>4</number>
+      </property>
+     </widget>
+    </item>
     <item row="50" column="1" colspan="2">
      <spacer name="verticalSpacer_6">
       <property name="orientation">

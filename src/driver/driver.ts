@@ -1,13 +1,12 @@
 // driver/driver.ts - Mapping from engines to Kwin API
 
-import {
-    BTreeEngine,
-    Tile,
-    Client,
-    EngineConfig,
-} from "../engine";
+import { BTreeEngine, Tile, Client, EngineConfig } from "../engine";
 import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
-import { InsertionPoint, TiledWindowStacking, RESIZE_AMOUNT } from "../util/config";
+import {
+    InsertionPoint,
+    TiledWindowStacking,
+    RESIZE_AMOUNT,
+} from "../util/config";
 import * as Kwin from "kwin-api";
 import { BiMap } from "../util/bimap";
 import { Queue } from "../util/queue";
@@ -20,13 +19,13 @@ export class TilingDriver {
 
     private logger: Log;
     private config: Config;
-    private     ctrl: Controller;
+    private ctrl: Controller;
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
     // windows that have no associated tile but are still in an engine go here
     untiledWindows: Set<Kwin.Window> = new Set();
-    // windows declined tiling because maxTiledWindows was reached (FIFO for auto-promotion)
+    // windows declined tiling because the cap was reached (FIFO for auto-promotion)
     private overflowedWindows: Set<Kwin.Window> = new Set();
 
     get engineConfig(): EngineConfig {
@@ -165,7 +164,10 @@ export class TilingDriver {
                 }
                 const extensions = this.ctrl.windowExtensions.get(window);
                 if (extensions == undefined) {
-                    this.logger.error("Window extensions not found for", window.resourceClass);
+                    this.logger.error(
+                        "Window extensions not found for",
+                        window.resourceClass,
+                    );
                     continue;
                 }
                 // set some properties before setting tile to make sure client shows up
@@ -316,17 +318,18 @@ export class TilingDriver {
             this.logger.error(e);
             return false;
         }
-        // a tiled slot freed up: auto-promote the oldest capped-out floater
+        // a tiled slot freed up: auto-promote the oldest capped-out floater if
+        // the half it targets now has room
         if (
-            this.config.maxTiledWindows > 0 &&
+            this.config.maxTiledWindowsPerHalf > 0 &&
             this.overflowedWindows.size > 0 &&
-            this.tiledCount() < this.config.maxTiledWindows
+            this.targetHalfCount() < this.config.maxTiledWindowsPerHalf
         ) {
             const oldest = this.overflowedWindows.values().next().value;
             if (oldest != null) {
                 this.overflowedWindows.delete(oldest);
                 this.logger.debug(
-                    "Max tiled windows has a free slot, promoting",
+                    "A half has a free slot, promoting",
                     oldest.resourceClass,
                 );
                 this.addWindow(oldest);
@@ -336,8 +339,27 @@ export class TilingDriver {
         return false;
     }
 
-    private tiledCount(): number {
-        return this.engine.getAllClients().length;
+    // The root-level half the next window would be inserted into:
+    // dwindle insertion targets the dwindle pile, active insertion targets the
+    // half of the last active tiled window (falling back to the dwindle side).
+    private targetHalfNode() {
+        if (this.engine.config.insertionPoint == InsertionPoint.Active) {
+            const activeWindow = this.ctrl.workspaceExtensions.lastActiveWindow;
+            if (activeWindow != null && activeWindow.tile != null) {
+                const tile = this.tiles.get(activeWindow.tile);
+                if (tile != undefined) {
+                    const node = this.engine.nodeOfTile(tile);
+                    if (node != null) {
+                        return this.engine.rootChildNode(node);
+                    }
+                }
+            }
+        }
+        return this.engine.dwindleSideNode();
+    }
+
+    private targetHalfCount(): number {
+        return this.engine.clientCount(this.targetHalfNode());
     }
 
     addWindow(window: Kwin.Window): void {
@@ -348,10 +370,11 @@ export class TilingDriver {
         if (this.clients.has(window) && !this.untiledWindows.has(window)) {
             return;
         }
-        // window cap: leave new windows floating once the layout is full
+        // window cap: leave new windows floating once the target half is full.
+        // The whole layout is one half while fewer than two halves exist.
         if (
-            this.config.maxTiledWindows > 0 &&
-            this.tiledCount() >= this.config.maxTiledWindows
+            this.config.maxTiledWindowsPerHalf > 0 &&
+            this.targetHalfCount() >= this.config.maxTiledWindowsPerHalf
         ) {
             this.overflowedWindows.add(window);
             // capped-out floaters must always sit over the tiled layer,
@@ -360,7 +383,7 @@ export class TilingDriver {
             window.keepBelow = false;
             this.ctrl.workspace.raiseWindow(window);
             this.logger.debug(
-                "Max tiled windows reached, leaving",
+                "Half is at its tiled window limit, leaving",
                 window.resourceClass,
                 "floating",
             );
@@ -410,6 +433,23 @@ export class TilingDriver {
             );
             return;
         }
+        // per-half cap: dropping a window onto a full half keeps it floating
+        if (this.config.maxTiledWindowsPerHalf > 0) {
+            const node = this.engine.nodeOfTile(tile);
+            const half = this.engine.rootChildNode(node);
+            if (
+                half != null &&
+                this.engine.clientCount(half) >=
+                    this.config.maxTiledWindowsPerHalf
+            ) {
+                this.logger.debug(
+                    "Drop target half is full, keeping",
+                    window.resourceClass,
+                    "floating",
+                );
+                return;
+            }
+        }
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
@@ -435,6 +475,8 @@ export class TilingDriver {
             }
             this.engine.putClientInTile(client, tile, rotatedDirection);
             this.engine.buildLayout();
+            // a capped-out floater that found a slot is no longer overflowing
+            this.overflowedWindows.delete(window);
         } catch (e) {
             this.logger.error(e);
         }

@@ -55,8 +55,13 @@ export class Config {
 
         // 0 = unlimited
         this.maxTiledWindows = rc("MaxTiledWindows", 5);
+        // 0 = unlimited (per layout half, counts the half the next window targets)
+        this.maxTiledWindowsPerHalf = rc("MaxTiledWindowsPerHalf", 4);
 
-        this.tiledWindowStacking = rc("TiledWindowStacking", TiledWindowStacking.KeepBelow);
+        this.tiledWindowStacking = rc(
+            "TiledWindowStacking",
+            TiledWindowStacking.KeepBelow,
+        );
 
         this.insertionPoint = rc("InsertionPoint", InsertionPoint.Right);
         this.rotateLayout = rc("RotateLayout", false);
@@ -83,6 +88,11 @@ export class Config {
 
     // max windows tiled per desktop before new ones float (0 = unlimited)
     maxTiledWindows: number = 5;
+
+    // max windows tiled per layout half before new ones float (0 = unlimited).
+    // The "half" is the root-level side the next window targets (the dwindle
+    // pile for dwindle insertion, or the active window's side for Active).
+    maxTiledWindowsPerHalf: number = 4;
 
     insertionPoint: InsertionPoint = InsertionPoint.Right;
     rotateLayout: boolean = false;

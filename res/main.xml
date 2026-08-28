@@ -9,6 +9,7 @@
         <entry name="TiledWindowStacking" type="int"><default>2</default></entry>
         <entry name="MaximizeSingle" type="bool"><default>false</default></entry>
         <entry name="MaxTiledWindows" type="int"><default>5</default></entry>
+        <entry name="MaxTiledWindowsPerHalf" type="int"><default>4</default></entry>
         <entry name="InsertionPoint" type="int"><default>1</default></entry>
         <entry name="RotateLayout" type="bool"><default>false</default></entry>
         <entry name="AutoRotateLayout" type="bool"><default>true</default></entry>
