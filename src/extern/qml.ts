@@ -57,4 +57,5 @@ export interface Shortcuts {
 
 export interface Notify {
     getNotify(): DBusCall;
+    getOsd(): DBusCall;
 }

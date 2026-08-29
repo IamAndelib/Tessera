@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A system notification when Tessera is disabled from System Settings, warning
   that re-enabling mid-session needs a log out / log in (upstream KWin script
   reload limitation).
+- A transient on-screen indicator (OSD) when Toggle Tiling fires: a small pill
+  shows "Tiling enabled" or "Tiling disabled" so the switch is visible even
+  when the layout barely changes.
 
 ### Changed
 - Tiling no longer depends on the external `org.tessera.SettingSaver` DBus

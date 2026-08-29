@@ -93,6 +93,7 @@ export class Controller {
         // hand every managed window back to its pre-tiling state and detach
         // them from KWin tiles; all hooks/shortcuts are inactive from now on
         this.driverManager.untileAll();
+        this.showOsd("kt-restore-defaults", "Tiling disabled");
     }
 
     activate(): void {
@@ -105,6 +106,7 @@ export class Controller {
         // windows that arrived while tiling was off
         this.driverManager.rebuildLayout();
         this.backfillExistingWindows();
+        this.showOsd("view-grid", "Tiling enabled");
     }
 
     // release windows when the script is unloaded, disabled or removed.
@@ -143,6 +145,20 @@ export class Controller {
             ];
             notify.call();
         } catch (e) {
+            this.logger.error(e);
+        }
+    }
+
+    // transient Plasma pill rendered by plasmashell (org.kde.osdService); gives
+    // the toggle shortcut immediate visible feedback
+    private showOsd(icon: string, text: string): void {
+        try {
+            const osd = this.qmlObjects.notify.getOsd();
+            osd.arguments = [icon, text];
+            osd.call();
+        } catch (e) {
+            // no plasmashell (logout/headless): the toggle still worked, the
+            // indicator is optional
             this.logger.error(e);
         }
     }
