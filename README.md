@@ -70,6 +70,18 @@ kpackagetool6 -t KWin/Script -i tessera.kwinscript
 ./install.sh --uninstall
 ```
 
+This releases every tiled window immediately: windows drop out of their tiles,
+forced stacking is undone, and each window returns to the geometry, maximized
+and fullscreen state it had before Tessera tiled it. Stopping the script from
+System Settings applies the same cleanup. Enabling the script tiles the windows
+already open, so disabling it later hands them all back intact.
+
+**Note (KWin < 6.8):** re-enabling the script in System Settings right after
+disabling it can leave it "loaded but not running" due to an upstream KWin
+declarative-script reload issue. A re-login, or
+`disable -> qdbus6 org.kde.KWin /KWin reconfigure -> enable -> reconfigure`,
+starts it reliably.
+
 or manually: `kpackagetool6 -t KWin/Script -r tessera`
 
 ## Requirements

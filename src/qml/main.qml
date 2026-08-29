@@ -29,6 +29,12 @@ Item {
         Tessera.main(api, qmlObjects);
     }
 
+    // KWin runs this when the script is unloaded (disable/uninstall) and on
+    // logout, so release every managed window before the script goes away
+    Component.onDestruction: {
+        Tessera.destroy();
+    }
+
     Loader {
         id: dbusLoader;
         

@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the layout orientation: two side-by-side windows become top/bottom (left on
   top, right on bottom) and back.
 
+### Changed
+- Disabling or uninstalling the script (and KWin logout) now releases every
+  tiled window: tiles are dropped, forced stacking is undone, and each window
+  returns to its pre-tiling geometry, maximization and fullscreen state.
+- Windows that are already open when the script starts are now tiled too
+  (i3-style backfill), and captured so unloading hands them back intact.
+- Fixed a regenerating loop on tile-resize: the layout debounce timer could
+  throw, so every tile change retiled the tree thousands of times (causing
+  scrambled, non-tiling windows). Debounce is now guarded and uses `start()`.
+- Guarded against a second script instance overlapping an old one when KWin
+  reloads a declarative script mid-session (upstream QQmlEngine cache issue,
+  bug 519678): an existing controller is torn down before the new one starts.
+  Note: re-enabling the script in System Settings after disabling it can leave
+  it "loaded but not running" on affected KWin versions; re-login (or
+  disable -> reconfigure -> enable -> reconfigure) restores it reliably.
+
 ### Removed
 - The quick settings dialog (`TesseraOpenSettings` / `Meta+\`) and the on-screen
   display (OSD) were removed to keep the script lean. Settings remain available

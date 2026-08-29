@@ -73,6 +73,21 @@ export class Controller {
         this.initTimer.start();
     }
 
+    // release windows when the script is unloaded, disabled or removed.
+    // guards against running during an actual KWin logout and never lets
+    // a teardown error take KWin down with it.
+    destroy(): void {
+        this.logger.debug("Tessera unload cleanup started");
+        try {
+            if (this.workspace.screens.length == 0) {
+                return;
+            }
+            this.driverManager.untileAll();
+        } catch (e) {
+            this.logger.error(e);
+        }
+    }
+
     private initCallback(): void {
         // keep restarting the call until it actually initializes properly
         if (
@@ -98,5 +113,24 @@ export class Controller {
         // hook into kwin after everything loads nicely
         this.workspaceActions.addHooks();
         this.driverManager.init();
+        // i3-style: manage the windows already open when the script starts,
+        // so they tile too and get captured for a proper unload restore
+        this.backfillExistingWindows();
+    }
+
+    private backfillExistingWindows(): void {
+        const windows = this.workspace.windows.slice();
+        this.logger.debug(
+            "Backfilling",
+            windows.length,
+            "existing windows",
+        );
+        for (const window of windows) {
+            try {
+                this.workspaceActions.windowAdded(window);
+            } catch (e) {
+                this.logger.error(e);
+            }
+        }
     }
 }

@@ -58,8 +58,15 @@ export class WorkspaceActions {
     windowAdded(window: Window): void {
         this.ctrl.windowExtensions.set(
             window,
-            new WindowExtensions(window, this.ctrl.desktopFactory),
+            new WindowExtensions(
+                window,
+                this.ctrl.desktopFactory,
+                this.ctrl.workspace,
+            ),
         );
+        // capture pre-tiling state on first sight, before any script
+        // mutation, so unload can hand every managed window back intact
+        this.ctrl.windowExtensions.get(window)?.captureState();
         this.ctrl.windowHookManager.attachWindowHooks(window);
         if (!this.doTileWindow(window)) {
             this.logger.debug("Not tiling window", window.resourceClass);

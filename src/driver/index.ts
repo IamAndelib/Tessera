@@ -127,10 +127,9 @@ export class DriverManager {
     }
 
     private layoutModified(tile: Tile): void {
-        if (this._buildingLayout) {
+        if (this._buildingLayout || this.resizingLayout) {
             return;
         }
-        this.resizingLayout = true;
         const timer = this.rootTileCallbacks.get(tile);
         if (timer == undefined) {
             this.logger.error(
@@ -139,7 +138,14 @@ export class DriverManager {
             );
             return;
         }
-        timer.restart();
+        // delayed regeneration so drags/resizes settle before we rebuild.
+        // restart() throws for KWin's QML Timer in some versions, so use
+        // start() and never let a thrown error leave us mid-debounce.
+        try {
+            timer.start();
+        } catch (e) {
+            this.logger.error(e);
+        }
     }
 
     private layoutModifiedCallback(tile: Tile, output: Output): void {
@@ -154,8 +160,14 @@ export class DriverManager {
             this.logger.error("No driver for desktop", desktop.toString());
             return;
         }
-        driver.regenerateLayout(tile);
-        this.resizingLayout = false;
+        try {
+            this.resizingLayout = true;
+            driver.regenerateLayout(tile);
+        } catch (e) {
+            this.logger.error(e);
+        } finally {
+            this.resizingLayout = false;
+        }
     }
 
     private applyTiled(window: Window): void {
@@ -374,5 +386,28 @@ export class DriverManager {
                 window.setMaximize(false, false);
             }
         });
+    }
+
+    // release every window the script is managing, so nothing stays
+    // tiled/snapped after the script is unloaded, disabled or removed
+    untileAll(): void {
+        for (const driver of this.drivers.values()) {
+            driver.untileAll();
+        }
+        // sweep anything still snapped: windows tiled by a previous script
+        // instance or foreign tiles are invisible to the drivers above.
+        // Detaching them is what makes "uninstall restores everything" true.
+        for (const window of this.ctrl.workspace.windows) {
+            if (window.tile == null) {
+                continue;
+            }
+            try {
+                window.tile = null;
+                window.keepAbove = false;
+                window.keepBelow = false;
+            } catch (e) {
+                this.logger.error(e);
+            }
+        }
     }
 }
