@@ -109,13 +109,17 @@ export class Controller {
         this.showOsd("view-grid", "Tiling enabled");
     }
 
-    // release windows when the script is unloaded, disabled or removed.
-    // guards against running during an actual KWin logout and never lets
-    // a teardown error take KWin down with it.
+    // release windows when the script is unloaded, disabled or removed. runs
+    // synchronously (no Qt.callLater deferral: the script's QJSEngine is torn
+    // down in the same pass as unload, so a deferred callback is always
+    // dropped and the restore would never run). on a real KWin logout the
+    // workspace windows are already gone when onDestruction runs, so the
+    // workspace is empty and there is nothing to restore — touching freed
+    // Window objects there is what used to SIGSEGV kwin.
     destroy(): void {
         this.logger.debug("Tessera unload cleanup started");
         try {
-            if (this.workspace.screens.length == 0) {
+            if (this.workspace.windows.length == 0) {
                 return;
             }
             this.driverManager.untileAll();
