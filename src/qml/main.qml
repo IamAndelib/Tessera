@@ -24,15 +24,21 @@ Item {
         const qmlObjects = {
             "root": root,
             "shortcuts": shortcutsLoader.item,
-            "dbus": dbusLoader.item,
+            "notify": notifyLoader.item,
         };
         Tessera.main(api, qmlObjects);
     }
 
+    // KWin runs this when the script is unloaded (disable/uninstall) and on
+    // logout, so release every managed window before the script goes away
+    Component.onDestruction: {
+        Tessera.destroy();
+    }
+
     Loader {
-        id: dbusLoader;
-        
-        source: "dbus.qml";
+        id: notifyLoader;
+
+        source: "notify.qml";
     }
     
     Loader {

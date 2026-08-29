@@ -75,39 +75,57 @@ export class ShortcutManager {
         this.config = ctrl.config;
         const shortcuts = ctrl.qmlObjects.shortcuts;
 
-        const bindings: Array<[get: () => ShortcutHandler, fn: () => void]> = [
-            [shortcuts.getRetileWindow, this.retileWindow.bind(this)],
+        const bindings: Array<{
+            get: () => ShortcutHandler;
+            fn: () => void;
+            // skip the "tiling is off" guard: the toggle itself must stay usable
+            // so it can be switched back on even while everything else is inert
+            exemptGuard?: boolean;
+        }> = [
+            {
+                get: shortcuts.getToggleEnabled,
+                fn: this.ctrl.toggleTiling.bind(this.ctrl),
+                exemptGuard: true,
+            },
 
-            [shortcuts.getFocusAbove, this.focus.bind(this, Direction.Above)],
-            [shortcuts.getFocusBelow, this.focus.bind(this, Direction.Below)],
-            [shortcuts.getFocusLeft, this.focus.bind(this, Direction.Left)],
-            [shortcuts.getFocusRight, this.focus.bind(this, Direction.Right)],
+            { get: shortcuts.getRetileWindow, fn: this.retileWindow.bind(this) },
 
-            [shortcuts.getInsertAbove, this.insert.bind(this, Direction.Above)],
-            [shortcuts.getInsertBelow, this.insert.bind(this, Direction.Below)],
-            [shortcuts.getInsertLeft, this.insert.bind(this, Direction.Left)],
-            [shortcuts.getInsertRight, this.insert.bind(this, Direction.Right)],
+            { get: shortcuts.getFocusAbove, fn: this.focus.bind(this, Direction.Above) },
+            { get: shortcuts.getFocusBelow, fn: this.focus.bind(this, Direction.Below) },
+            { get: shortcuts.getFocusLeft, fn: this.focus.bind(this, Direction.Left) },
+            { get: shortcuts.getFocusRight, fn: this.focus.bind(this, Direction.Right) },
 
-            [shortcuts.getResizeAbove, this.resize.bind(this, Direction.Above)],
-            [shortcuts.getResizeBelow, this.resize.bind(this, Direction.Below)],
-            [shortcuts.getResizeLeft, this.resize.bind(this, Direction.Left)],
-            [shortcuts.getResizeRight, this.resize.bind(this, Direction.Right)],
+            { get: shortcuts.getInsertAbove, fn: this.insert.bind(this, Direction.Above) },
+            { get: shortcuts.getInsertBelow, fn: this.insert.bind(this, Direction.Below) },
+            { get: shortcuts.getInsertLeft, fn: this.insert.bind(this, Direction.Left) },
+            { get: shortcuts.getInsertRight, fn: this.insert.bind(this, Direction.Right) },
 
-            [shortcuts.getRotateLayout, this.rotateLayout.bind(this)],
+            { get: shortcuts.getResizeAbove, fn: this.resize.bind(this, Direction.Above) },
+            { get: shortcuts.getResizeBelow, fn: this.resize.bind(this, Direction.Below) },
+            { get: shortcuts.getResizeLeft, fn: this.resize.bind(this, Direction.Left) },
+            { get: shortcuts.getResizeRight, fn: this.resize.bind(this, Direction.Right) },
+
+            { get: shortcuts.getRotateLayout, fn: this.rotateLayout.bind(this) },
 
             // Hyprland-style shortcuts
-            [shortcuts.getSwapHalves, this.swapHalves.bind(this)],
-            [shortcuts.getSwapWithSibling, this.swapWithSibling.bind(this)],
-            [shortcuts.getSwapAbove, this.swapInDirection.bind(this, Direction.Above)],
-            [shortcuts.getSwapBelow, this.swapInDirection.bind(this, Direction.Below)],
-            [shortcuts.getSwapLeft, this.swapInDirection.bind(this, Direction.Left)],
-            [shortcuts.getSwapRight, this.swapInDirection.bind(this, Direction.Right)],
-            [shortcuts.getToggleSplit, this.toggleSplit.bind(this)],
-            [shortcuts.getCycleNext, this.cycleNext.bind(this, false)],
-            [shortcuts.getCyclePrev, this.cycleNext.bind(this, true)],
+            { get: shortcuts.getSwapHalves, fn: this.swapHalves.bind(this) },
+            { get: shortcuts.getSwapWithSibling, fn: this.swapWithSibling.bind(this) },
+            { get: shortcuts.getSwapAbove, fn: this.swapInDirection.bind(this, Direction.Above) },
+            { get: shortcuts.getSwapBelow, fn: this.swapInDirection.bind(this, Direction.Below) },
+            { get: shortcuts.getSwapLeft, fn: this.swapInDirection.bind(this, Direction.Left) },
+            { get: shortcuts.getSwapRight, fn: this.swapInDirection.bind(this, Direction.Right) },
+            { get: shortcuts.getToggleSplit, fn: this.toggleSplit.bind(this) },
+            { get: shortcuts.getCycleNext, fn: this.cycleNext.bind(this, false) },
+            { get: shortcuts.getCyclePrev, fn: this.cycleNext.bind(this, true) },
         ];
-        for (const [get, fn] of bindings) {
-            get().activated.connect(fn);
+        for (const { get, fn, exemptGuard } of bindings) {
+            // while tiling is toggled off, every shortcut is inert, except the
+            // toggle itself which must be able to bring tiling back on
+            get().activated.connect(() => {
+                if (exemptGuard || this.ctrl.active) {
+                    fn();
+                }
+            });
         }
     }
 

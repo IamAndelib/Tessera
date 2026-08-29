@@ -55,32 +55,55 @@ export class WorkspaceActions {
         }
     }
 
-    windowAdded(window: Window): void {
+    // returns true when the window was handed to the tiling driver (used by
+    // the enable-time backfill to know how many windows got tiled)
+    windowAdded(window: Window): boolean {
+        // windows opened while tiling is toggled off stay floating untouched,
+        // and are picked up again on the next enable
+        if (!this.ctrl.active) {
+            return false;
+        }
         this.ctrl.windowExtensions.set(
             window,
-            new WindowExtensions(window, this.ctrl.desktopFactory),
+            new WindowExtensions(
+                window,
+                this.ctrl.desktopFactory,
+                this.ctrl.workspace,
+            ),
         );
+        // capture pre-tiling state on first sight, before any script
+        // mutation (so disable can hand every window back intact). Runs for
+        // minimized windows too: if they are later un-minimized and tiled,
+        // their recorded state stays like it was at enable time.
+        this.ctrl.windowExtensions.get(window)?.captureState();
         this.ctrl.windowHookManager.attachWindowHooks(window);
         if (!this.doTileWindow(window)) {
             this.logger.debug("Not tiling window", window.resourceClass);
-            return;
+            return false;
         }
         this.logger.debug("Window", window.resourceClass, "added");
         this.ctrl.driverManager.addWindow(window);
         this.ctrl.driverManager.quitFullScreen(window.output);
         this.ctrl.driverManager.rebuildLayout();
+        return true;
     }
 
     windowRemoved(window: Window): void {
         this.logger.debug("Window", window.resourceClass, "removed");
+        // driver bookkeeping always runs: a window closed while tiling is
+        // toggled off must still be dropped so a later re-enable doesn't try
+        // to rebuild a layout that includes a dead window
         this.ctrl.driverManager.removeWindow(window);
-        if (this.ctrl.windowExtensions.get(window)?.isTiled) {
+        if (this.ctrl.active && this.ctrl.windowExtensions.get(window)?.isTiled) {
             this.ctrl.driverManager.rebuildLayout();
         }
         this.ctrl.windowExtensions.delete(window);
     }
 
     currentDesktopChange(): void {
+        if (!this.ctrl.active) {
+            return;
+        }
         // have to set this because this function temp untiles all windows
         this.ctrl.driverManager.suppressLayout(() => {
             // set geometry for all clients manually to avoid resizing when tiles are deleted

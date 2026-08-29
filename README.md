@@ -107,6 +107,15 @@ This includes:
 
 Access settings via **System Settings > Window Management > KWin Scripts > Tessera (Configure)**
 
+> **Enabling / disabling:** Use the **Toggle Tiling** shortcut (`Meta+Shift+E`) to
+> switch tiling on and off mid-session — it restores every window to its
+> pre-tiling state and back. Using the checkbox in System Settings also works
+> for the first enable and for disabling; however on some KWin versions
+> (6.6–6.8), re-enabling from System Settings without a full log out/log in does
+> nothing because the script is reloaded into a stale QML context (upstream KWin
+> limitation). Tessera shows a notification when you disable it via System
+> Settings to remind you of this.
+
 | Option                | Description                                                       | Default                                       |
 | --------------------- | ----------------------------------------------------------------- | --------------------------------------------- |
 | `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left                                          |
@@ -126,6 +135,7 @@ Configure in **System Settings > Shortcuts > Window Management** (search "Tesser
 
 | Action                 | Default Shortcut   | Description                                               |
 | ---------------------- | ------------------ | --------------------------------------------------------- |
+| Toggle Tiling          | `Meta+Shift+E`     | Enable/disable tiling on the fly: restore all windows and stop, or start tiling again                                        |
 | Tile/Untile Window     | `Meta+Shift+Space` | Toggle tiling for the active window                       |
 | Focus Above            | `Meta+K`           | Move focus to the window above                            |
 | Focus Below            | `Meta+J`           | Move focus to the window below                            |

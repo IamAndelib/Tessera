@@ -86,6 +86,7 @@ export class TilingDriver {
                 window.tile = null;
                 const extensions = this.ctrl.windowExtensions.get(window);
                 if (extensions != undefined) {
+                    extensions.captureState();
                     extensions.isSingleMaximized = true;
                 }
                 window.setMaximize(true, true);
@@ -171,6 +172,7 @@ export class TilingDriver {
                     continue;
                 }
                 // set some properties before setting tile to make sure client shows up
+                extensions.captureState();
                 window.minimized = false;
                 window.fullScreen = false;
                 window.setMaximize(false, false);
@@ -339,6 +341,69 @@ export class TilingDriver {
         return false;
     }
 
+    // hand a managed window back to the exact state it had before the script
+    // tiled it (its capture-time state), detached from any KWin tile.
+    restoreWindow(window: Kwin.Window): void {
+        const extensions = this.ctrl.windowExtensions.get(window);
+        try {
+            // detach from KWin's tiling first so nothing stays managed
+            window.tile = null;
+            if (extensions != undefined) {
+                // undo forced stacking and the floater keep-above
+                window.keepAbove = extensions.priorKeepAbove;
+                window.keepBelow = extensions.priorKeepBelow;
+                if (extensions.priorFullScreen) {
+                    window.fullScreen = true;
+                } else if (
+                    extensions.priorMaximizedFull ||
+                    extensions.isSingleMaximized
+                ) {
+                    window.setMaximize(true, true);
+                }
+                // a window that was already minimized when we captured it goes
+                // back to being minimized
+                if (extensions.priorMinimized) {
+                    window.minimized = true;
+                }
+                // only restore geometry for plain floating windows; KWin owns
+                // the geometry of minimized/maximized/fullscreen windows
+                if (
+                    !extensions.priorMinimized &&
+                    !extensions.priorFullScreen &&
+                    !extensions.priorMaximizedFull &&
+                    !extensions.isSingleMaximized
+                ) {
+                    window.setMaximize(false, false);
+                    if (extensions.priorFrameGeometry != null) {
+                        window.frameGeometry = extensions.priorFrameGeometry;
+                    }
+                }
+            } else {
+                window.keepAbove = false;
+                window.keepBelow = false;
+            }
+        } catch (e) {
+            // the script is being torn down; never let cleanup take kwin down
+            this.logger.error(e);
+        }
+    }
+
+    untileAll(): void {
+        const windows: Set<Kwin.Window> = new Set();
+        for (const window of this.clients.keys()) {
+            windows.add(window);
+        }
+        for (const window of this.untiledWindows) {
+            windows.add(window);
+        }
+        for (const window of this.overflowedWindows) {
+            windows.add(window);
+        }
+        for (const window of windows) {
+            this.restoreWindow(window);
+        }
+    }
+
     // The root-level half the next window would be inserted into:
     // dwindle insertion targets the dwindle pile, active insertion targets the
     // half of the last active tiled window (falling back to the dwindle side).
@@ -379,6 +444,7 @@ export class TilingDriver {
             this.overflowedWindows.add(window);
             // capped-out floaters must always sit over the tiled layer,
             // regardless of the tiled-window stacking config
+            this.ctrl.windowExtensions.get(window)?.captureState();
             window.keepAbove = true;
             window.keepBelow = false;
             this.ctrl.workspace.raiseWindow(window);

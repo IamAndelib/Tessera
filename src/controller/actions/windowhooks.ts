@@ -36,6 +36,9 @@ export class WindowHooks {
     }
 
     desktopChanged(): void {
+        if (!this.ctrl.active) {
+            return;
+        }
         this.logger.debug(
             "Desktops changed for window",
             this.window.resourceClass,
@@ -71,6 +74,9 @@ export class WindowHooks {
     // have to use imrs and tilechanged
     // interactive mr handles moving out of tiles, tilechanged handles moving into tiles
     tileChanged(tile: Tile) {
+        if (!this.ctrl.active) {
+            return;
+        }
         if (this.ctrl.driverManager.isBuildingLayout || tile == null) {
             return;
         }
@@ -127,6 +133,9 @@ export class WindowHooks {
 
     // should be fine if i just leave this here without a timer
     interactiveMoveResizeStepped() {
+        if (!this.ctrl.active) {
+            return;
+        }
         if (
             this.ctrl.driverManager.isBuildingLayout ||
             this.ctrl.driverManager.resizingLayout ||
@@ -165,6 +174,9 @@ export class WindowHooks {
     }
 
     putWindowInBestTile(): void {
+        if (!this.ctrl.active) {
+            return;
+        }
         if (this.extensions.lastTiledLocation != null) {
             // fancy and illegally long code to place tile in a similar position from when it was untiled
             let tile = this.ctrl.workspace
@@ -222,6 +234,9 @@ export class WindowHooks {
     }
 
     fullscreenChanged(): void {
+        if (!this.ctrl.active) {
+            return;
+        }
         if (this.ctrl.driverManager.isBuildingLayout) {
             return;
         }
@@ -239,20 +254,41 @@ export class WindowHooks {
     }
 
     minimizedChanged(): void {
-        this.handleWindowStateChange(
-            this.window.minimized,
-            "Minimized on client",
-            this.window.minimized,
-            () =>
-                !this.window.fullScreen &&
-                !(
-                    this.extensions.maximized &&
-                    this.extensions.isSingleMaximized
-                ),
-        );
+        if (!this.ctrl.active) {
+            return;
+        }
+        if (this.ctrl.driverManager.isBuildingLayout) {
+            return;
+        }
+        if (this.window.minimized && this.extensions.isTiled) {
+            this.ctrl.driverManager.untileWindow(this.window);
+            this.ctrl.driverManager.rebuildLayout(this.window.output);
+            this.extensions.wasTiled = true;
+        } else if (
+            !this.window.minimized &&
+            !this.extensions.isTiled &&
+            !this.window.fullScreen &&
+            !(
+                this.extensions.maximized &&
+                this.extensions.isSingleMaximized
+            )
+        ) {
+            if (this.extensions.wasTiled) {
+                this.putWindowInBestTile();
+            } else if (this.ctrl.workspaceActions.doTileWindow(this.window)) {
+                // a window the script saw but never tiled (e.g. it was already
+                // minimized when the script started): tile it next like a new
+                // window, or let it float if the tiled-window cap is reached
+                this.ctrl.driverManager.addWindow(this.window);
+                this.ctrl.driverManager.rebuildLayout(this.window.output);
+            }
+        }
     }
 
     maximizedChanged(mode: MaximizeMode) {
+        if (!this.ctrl.active) {
+            return;
+        }
         const maximized = mode == MaximizeMode.MaximizeFull;
         this.extensions.maximized = maximized;
         if (this.ctrl.driverManager.isBuildingLayout) {

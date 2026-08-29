@@ -13,7 +13,7 @@ export interface Api {
 export interface Objects {
     root: Root;
     shortcuts: Shortcuts;
-    dbus: DBus;
+    notify: Notify;
 }
 
 export interface Root {
@@ -22,6 +22,8 @@ export interface Root {
 }
 
 export interface Shortcuts {
+    getToggleEnabled(): ShortcutHandler;
+
     getRetileWindow(): ShortcutHandler;
 
     getFocusAbove(): ShortcutHandler;
@@ -53,9 +55,6 @@ export interface Shortcuts {
     getCyclePrev(): ShortcutHandler;
 }
 
-export interface DBus {
-    getGetSettings(): DBusCall;
-    getSetSettings(): DBusCall;
-    getRemoveSettings(): DBusCall;
-    getExists(): DBusCall;
+export interface Notify {
+    getNotify(): DBusCall;
 }

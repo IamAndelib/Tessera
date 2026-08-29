@@ -16,6 +16,17 @@ Item {
         text: "Tessera: Tile/Untile Window";
         sequence: "Meta+Shift+Space";
     }
+
+    function getToggleEnabled() {
+        return toggleEnabled;
+    }
+    ShortcutHandler {
+        id: toggleEnabled;
+
+        name: "TesseraToggleEnabled";
+        text: "Tessera: Toggle Tiling";
+        sequence: "Meta+Shift+E";
+    }
     
     function getFocusAbove() {
         return focusAbove;

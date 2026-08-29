@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default `Meta+Shift+O` keybinding for `TesseraRotateLayout`, which toggles
   the layout orientation: two side-by-side windows become top/bottom (left on
   top, right on bottom) and back.
+- **Toggle Tiling** (`Meta+Shift+E`, `TesseraToggleEnabled`): tiling can now be
+  stopped and restarted at any time without touching System Settings. Disabling
+  restores every managed window to its captured pre-tiling state, enabling
+  starts tiling again from the current floating layout like a fresh install.
+- A system notification when Tessera is disabled from System Settings, warning
+  that re-enabling mid-session needs a log out / log in (upstream KWin script
+  reload limitation).
+
+### Changed
+- Tiling no longer depends on the external `org.tessera.SettingSaver` DBus
+  daemon: per-desktop engine settings are kept in memory for the session, and
+  the setting-over-DBus actions were removed.
 
 ### Removed
 - The quick settings dialog (`TesseraOpenSettings` / `Meta+\`) and the on-screen

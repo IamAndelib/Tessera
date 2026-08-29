@@ -155,9 +155,7 @@ EXPECTED_FILES=(
     pkg/contents/ui/config.ui
     pkg/contents/ui/main.qml
     pkg/contents/ui/shortcuts.qml
-    pkg/contents/ui/settings.qml
-    pkg/contents/ui/dbus.qml
-    pkg/contents/ui/osd.qml
+    pkg/contents/ui/notify.qml
 )
 
 for f in "${EXPECTED_FILES[@]}"; do

@@ -77,10 +77,6 @@ export class DriverManager {
                 const engine = new BTreeEngine(config);
                 const driver = new TilingDriver(engine, this.ctrl);
                 this.drivers.set(desktopString, driver);
-                this.ctrl.dbusManager.getSettings(
-                    desktopString,
-                    this.setEngineConfig.bind(this, desktop),
-                );
             } else {
                 currentDesktops.delete(desktopString);
             }
@@ -101,7 +97,11 @@ export class DriverManager {
                 }
             }
             if (remove && this.rootTileCallbacks.has(tile)) {
-                this.rootTileCallbacks.get(tile)?.destroy();
+                try {
+                    this.rootTileCallbacks.get(tile)?.destroy();
+                } catch {
+                    // timer may already be gone during teardown
+                }
                 this.rootTileCallbacks.delete(tile);
             }
         }
@@ -127,10 +127,10 @@ export class DriverManager {
     }
 
     private layoutModified(tile: Tile): void {
-        if (this._buildingLayout) {
+        // a tile drag hands us modified tiles: ignore while tiling is off
+        if (!this.ctrl.active || this._buildingLayout || this.resizingLayout) {
             return;
         }
-        this.resizingLayout = true;
         const timer = this.rootTileCallbacks.get(tile);
         if (timer == undefined) {
             this.logger.error(
@@ -139,7 +139,14 @@ export class DriverManager {
             );
             return;
         }
-        timer.restart();
+        // delayed regeneration so drags/resizes settle before we rebuild.
+        // restart() throws for KWin's QML Timer in some versions, so use
+        // start() and never let a thrown error leave us mid-debounce.
+        try {
+            timer.start();
+        } catch (e) {
+            this.logger.error(e);
+        }
     }
 
     private layoutModifiedCallback(tile: Tile, output: Output): void {
@@ -154,8 +161,14 @@ export class DriverManager {
             this.logger.error("No driver for desktop", desktop.toString());
             return;
         }
-        driver.regenerateLayout(tile);
-        this.resizingLayout = false;
+        try {
+            this.resizingLayout = true;
+            driver.regenerateLayout(tile);
+        } catch (e) {
+            this.logger.error(e);
+        } finally {
+            this.resizingLayout = false;
+        }
     }
 
     private applyTiled(window: Window): void {
@@ -331,10 +344,6 @@ export class DriverManager {
             return;
         }
         driver.engineConfig = config;
-        this.ctrl.dbusManager.setSettings(
-            desktop.toString(),
-            driver.engineConfig,
-        );
         this.rebuildLayout(desktop.output);
     }
 
@@ -345,13 +354,16 @@ export class DriverManager {
         if (driver) {
             driver.engineConfig = config;
         }
-        this.ctrl.dbusManager.removeSettings(desktop.toString());
         this.rebuildLayout(desktop.output);
     }
 
     // Get the driver for a specific desktop (used by shortcuts for Hyprland-style operations)
     getDriver(desktop: Desktop): TilingDriver | undefined {
         return this.drivers.get(desktop.toString());
+    }
+
+    get driverCount(): number {
+        return this.drivers.size;
     }
 
     resizeWindow(window: Window, direction: number): void {
@@ -374,5 +386,35 @@ export class DriverManager {
                 window.setMaximize(false, false);
             }
         });
+    }
+
+    // release every window the script is managing, so nothing stays
+    // tiled/snapped after the script is unloaded, disabled or removed
+    untileAll(): void {
+        for (const driver of this.drivers.values()) {
+            driver.untileAll();
+        }
+        // sweep anything still snapped: windows tiled by a previous script
+        // instance or foreign tiles are invisible to the drivers above.
+        // Detaching them is what makes "unload restores everything" true.
+        for (const window of this.ctrl.workspace.windows) {
+            if (window.tile == null) {
+                continue;
+            }
+            try {
+                window.tile = null;
+                const extensions = this.ctrl.windowExtensions.get(window);
+                window.keepAbove =
+                    extensions != undefined
+                        ? extensions.priorKeepAbove
+                        : false;
+                window.keepBelow =
+                    extensions != undefined
+                        ? extensions.priorKeepBelow
+                        : false;
+            } catch (e) {
+                this.logger.error(e);
+            }
+        }
     }
 }
