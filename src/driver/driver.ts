@@ -168,6 +168,7 @@ export class TilingDriver {
         return {
             insertionPoint: this.engine.config.insertionPoint,
             rotateLayout: this.engine.config.rotateLayout,
+            splitWidthMultiplier: this.engine.config.splitWidthMultiplier,
             // Hyprland-style dwindle options
             preserveSplit: this.engine.config.preserveSplit,
             forceSplit: this.engine.config.forceSplit,
@@ -178,6 +179,7 @@ export class TilingDriver {
     set engineConfig(config: EngineConfig) {
         this.engine.config.insertionPoint = config.insertionPoint;
         this.engine.config.rotateLayout = config.rotateLayout;
+        this.engine.config.splitWidthMultiplier = config.splitWidthMultiplier;
         // Hyprland-style dwindle options
         this.engine.config.preserveSplit = config.preserveSplit;
         this.engine.config.forceSplit = config.forceSplit;

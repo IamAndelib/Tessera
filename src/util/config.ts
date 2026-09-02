@@ -66,6 +66,8 @@ export class Config {
         // pile insertion remains selectable.
         this.insertionPoint = rc("InsertionPoint", InsertionPoint.Active);
         this.rotateLayout = rc("RotateLayout", false);
+        // biases the aspect rule; >1 favors top/bottom, <1 favors side-by-side
+        this.splitWidthMultiplier = rc("SplitWidthMultiplier", 1.0);
 
         // Hyprland-style dwindle options
         this.preserveSplit = rc("PreserveSplit", false);
@@ -95,6 +97,7 @@ export class Config {
 
     insertionPoint: InsertionPoint = InsertionPoint.Active;
     rotateLayout: boolean = false;
+    splitWidthMultiplier: number = 1.0;
 
     // Hyprland-style dwindle options
     preserveSplit: boolean = false; // Keep split directions permanent
@@ -108,6 +111,7 @@ export class Config {
         return {
             insertionPoint: this.insertionPoint,
             rotateLayout: this.rotateLayout,
+            splitWidthMultiplier: this.splitWidthMultiplier,
             preserveSplit: this.preserveSplit,
             forceSplit: this.forceSplit,
             persistentPreselect: this.persistentPreselect,

@@ -146,6 +146,7 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 | `PreserveSplit`       | Keep split directions permanent                                   | Off                                           |
 | `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                      |
 | `PersistentDirectionOverride` | Make Preselect shortcuts persistent instead of one-shot (Hyprland `permanent_direction_override`) | Off |
+| `SplitWidthMultiplier` | Bias the aspect rule: >1 favors top/bottom splits, <1 favors side-by-side (Hyprland `split_width_multiplier`) | 1.0 |
 | `RotateLayout`        | Transpose the aspect-based split decision (vertical-first on landscape) | Off                                     |
 | `Debug`               | Enable debug logging                                              | Off                                           |
 

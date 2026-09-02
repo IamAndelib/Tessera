@@ -10,6 +10,8 @@ import { Queue } from "../util/queue";
 export interface EngineConfig {
     insertionPoint: InsertionPoint;
     rotateLayout: boolean;
+    // biases the aspect rule: >1 favors top/bottom, <1 favors side-by-side
+    splitWidthMultiplier: number;
     // Hyprland-style dwindle options
     preserveSplit: boolean; // Keep split directions permanent
     forceSplit: ForceSplit; // Force split direction
@@ -355,13 +357,15 @@ export class BTreeEngine {
                 } else if (useAspect) {
                     // Hyprland dwindle: cut along the longer axis of the
                     // tile's actual geometry. rotateLayout transposes the
-                    // aspect comparison so the decision lands rotated.
+                    // aspect comparison so the decision lands rotated, and
+                    // splitWidthMultiplier biases toward top/bottom splits
+                    // when above 1.0 (like Hyprland's split_width_multiplier).
                     const primary = this.config.rotateLayout ? height : width;
                     const secondary = this.config.rotateLayout ? width : height;
                     splitDir =
-                        primary >= secondary
-                            ? LayoutDirection.Horizontal
-                            : LayoutDirection.Vertical;
+                        secondary * this.config.splitWidthMultiplier > primary
+                            ? LayoutDirection.Vertical
+                            : LayoutDirection.Horizontal;
                 } else {
                     // Dwindle: alternate split direction based on depth
                     splitDir =

@@ -198,10 +198,39 @@ from that direction instead.</string>
    <item row="38" column="1">
     <widget class="QCheckBox" name="kcfg_RotateLayout">
      <property name="toolTip">
-      <string>Start with vertical splits (top/bottom) instead of horizontal (side-by-side)</string>
+      <string>Transpose the aspect-based split decision: on a normal landscape screen splits become vertical (top/bottom) first.</string>
      </property>
      <property name="text">
       <string>Vertical-first layout</string>
+     </property>
+    </widget>
+   </item>
+   <item row="39" column="1">
+    <widget class="QLabel" name="label_splitwidth">
+     <property name="toolTip">
+      <string>Biases the aspect-based split rule. Values above 1.0 favor top/bottom splits, values below 1.0 favor side-by-side splits. 1.0 = pure aspect ratio.</string>
+     </property>
+     <property name="text">
+      <string>Split width multiplier</string>
+     </property>
+    </widget>
+   </item>
+   <item row="39" column="2">
+    <widget class="QDoubleSpinBox" name="kcfg_SplitWidthMultiplier">
+     <property name="toolTip">
+      <string>Biases the aspect-based split rule. Values above 1.0 favor top/bottom splits, values below 1.0 favor side-by-side splits. 1.0 = pure aspect ratio.</string>
+     </property>
+     <property name="minimum">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="maximum">
+      <double>5.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
+     </property>
+     <property name="value">
+      <double>1.000000000000000</double>
      </property>
     </widget>
    </item>

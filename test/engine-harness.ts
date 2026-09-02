@@ -33,6 +33,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     ["A", "B", "C", "D"].forEach((n) => {
         e.addClient(mk(n));
@@ -81,6 +82,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -102,6 +104,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -124,6 +127,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     ["A", "B", "C"].forEach((n) => {
         e.addClient(mk(n));
@@ -154,6 +158,7 @@ function engine() {
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
 }
 
@@ -302,6 +307,7 @@ function engine() {
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -347,6 +353,7 @@ function aspectEngine(rotate: boolean) {
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
 }
 
@@ -518,6 +525,7 @@ function mkDriver(cap: number): { driver: TilingDriver; extensions: Map<any, any
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: false,
+        splitWidthMultiplier: 1.0,
     });
     return { driver: new TilingDriver(engine, ctrl), extensions };
 }
@@ -705,6 +713,7 @@ function persistentEngine() {
         preserveSplit: false,
         forceSplit: 0,
         persistentPreselect: true,
+        splitWidthMultiplier: 1.0,
     });
 }
 
@@ -813,6 +822,48 @@ function persistentEngine() {
         "putClientInTile honors preselect without explicit direction",
         e.rootTile.layoutDirection === V && own(e.rootTile.tiles[0]) === "B",
         "dir=" + e.rootTile.layoutDirection + " " + own(e.rootTile.tiles[0]),
+    );
+}
+
+// --- B2: split width multiplier biases the aspect rule ---
+
+{
+    // tile is 800x900 (slightly taller than wide): pure aspect splits it
+    // Vertical; a 0.5 multiplier halves the effective height -> Horizontal
+    const e = new BTreeEngine({
+        insertionPoint: 1,
+        rotateLayout: false,
+        preserveSplit: false,
+        forceSplit: 0,
+        persistentPreselect: false,
+        splitWidthMultiplier: 0.5,
+    });
+    ["A", "B"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout({ width: 800, height: 900 });
+    });
+    check(
+        "multiplier 0.5 favors side-by-side on a slightly-tall tile",
+        e.rootTile.layoutDirection === H,
+        "dir=" + e.rootTile.layoutDirection,
+    );
+    // same geometry, multiplier 2: a slightly-wide tile splits Vertical
+    const e2 = new BTreeEngine({
+        insertionPoint: 1,
+        rotateLayout: false,
+        preserveSplit: false,
+        forceSplit: 0,
+        persistentPreselect: false,
+        splitWidthMultiplier: 2,
+    });
+    ["A", "B"].forEach((n) => {
+        e2.addClient(mk(n));
+        e2.buildLayout({ width: 900, height: 800 });
+    });
+    check(
+        "multiplier 2 favors top/bottom on a slightly-wide tile",
+        e2.rootTile.layoutDirection === V,
+        "dir=" + e2.rootTile.layoutDirection,
     );
 }
 
