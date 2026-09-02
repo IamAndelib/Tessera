@@ -17,20 +17,21 @@ Quick reference for all Tessera tiling shortcuts. Configure in **System Settings
 │           ↓                             ↓                           │
 │        Meta+J                       Meta+Shift+J                    │
 │                                                                     │
-│  RESIZE (borders)               SWAP (exchange positions)           │
-│  ────────────────               ──────────────────────              │
-│      Meta+Ctrl+K                     Meta+Alt+K                     │
-│          ↑                              ↑                           │
-│ Meta+Ctrl+H ← · → Meta+Ctrl+L   Meta+Alt+H ← · → Meta+Alt+L         │
-│          ↓                              ↓                           │
-│      Meta+Ctrl+J                     Meta+Alt+J                     │
+│  RESIZE (borders)                                                   │
+│  ────────────────                                                   │
+│      Meta+Ctrl+K                                                    │
+│          ↑                                                          │
+│ Meta+Ctrl+H ← · → Meta+Ctrl+L                                       │
+│          ↓                                                          │
+│      Meta+Ctrl+J                                                    │
 │                                                                     │
 │  ACTIONS                                                            │
 │  ───────                                                            │
+│  Meta+Shift+E        Toggle tiling on/off (restores all windows)    │
 │  Meta+Shift+Space    Tile/Untile focused window                     │
-│  Meta+\              Open quick settings                            │
-│  Meta+S              Swap with sibling (tree partner)               │
-│  Meta+T              Toggle split direction (H↔V)                   │
+│  Meta+T              Toggle split direction (pinned)                │
+│  Meta+Shift+S        Swap screen halves                             │
+│  Meta+Shift+O        Toggle layout orientation (H↔V)                │
 │  Meta+Tab            Cycle to next window                           │
 │  Meta+Shift+Tab      Cycle to previous window                       │
 │                                                                     │
@@ -41,13 +42,17 @@ Quick reference for all Tessera tiling shortcuts. Configure in **System Settings
 
 ### Core Actions
 
-| Action                    | Shortcut           | Description                      |
-| ------------------------- | ------------------ | -------------------------------- |
-| **Tile/Untile Window**    | `Meta+Shift+Space` | Toggle tiling for focused window |
-| **Open Settings**         | `Meta+\`           | Quick settings popup             |
-| **Toggle Vertical-First** | _(unbound)_        | Switch H/V first split           |
+| Action                 | Shortcut           | Description                                            |
+| ---------------------- | ------------------ | ------------------------------------------------------ |
+| **Toggle Tiling**      | `Meta+Shift+E`     | Switch tiling on/off; restoring all windows when off   |
+| **Tile/Untile Window** | `Meta+Shift+Space` | Toggle tiling for focused window                       |
+| **Swap Halves**        | `Meta+Shift+S`     | Swap the two tiling halves; the pile regrows on the freed side |
+| **Toggle Split**       | `Meta+T`           | Flip H↔V at the focused split (direction stays pinned) |
+| **Toggle Orientation** | `Meta+Shift+O`     | Transpose the layout: side-by-side ↔ top/bottom        |
 
 ### Focus Navigation (vim-style)
+
+Focus moves across monitor boundaries when you reach a screen edge.
 
 | Action      | Shortcut |
 | ----------- | -------- |
@@ -57,6 +62,8 @@ Quick reference for all Tessera tiling shortcuts. Configure in **System Settings
 | Focus Right | `Meta+L` |
 
 ### Move Window
+
+Moves cross monitor boundaries at screen edges.
 
 | Action     | Shortcut       |
 | ---------- | -------------- |
@@ -74,18 +81,12 @@ Quick reference for all Tessera tiling shortcuts. Configure in **System Settings
 | Resize Left  | `Meta+Ctrl+H` |
 | Resize Right | `Meta+Ctrl+L` |
 
-### Swap (Hyprland-style)
+### Cycle
 
-| Action                | Shortcut         | Description                 |
-| --------------------- | ---------------- | --------------------------- |
-| **Swap with Sibling** | `Meta+S`         | Swap with tree partner      |
-| **Swap Up**           | `Meta+Alt+K`     | Swap with window above      |
-| **Swap Down**         | `Meta+Alt+J`     | Swap with window below      |
-| **Swap Left**         | `Meta+Alt+H`     | Swap with window on left    |
-| **Swap Right**        | `Meta+Alt+L`     | Swap with window on right   |
-| **Toggle Split**      | `Meta+T`         | Flip H↔V at current split  |
-| **Cycle Next**        | `Meta+Tab`       | Focus next tiled window     |
-| **Cycle Previous**    | `Meta+Shift+Tab` | Focus previous tiled window |
+| Action           | Shortcut         | Description                 |
+| ---------------- | ---------------- | --------------------------- |
+| **Cycle Next**   | `Meta+Tab`       | Focus next tiled window     |
+| **Cycle Prev**   | `Meta+Shift+Tab` | Focus previous tiled window |
 
 ## Shortcut Pattern
 
@@ -94,9 +95,8 @@ The shortcuts follow **vim-style navigation (HJKL)** with modifier combinations:
 | Modifier     | Action         |
 | ------------ | -------------- |
 | `Meta` alone | Focus/navigate |
-| `Meta+Shift` | Move window    |
+| `Meta+Shift` | Move window / layout actions |
 | `Meta+Ctrl`  | Resize borders |
-| `Meta+Alt`   | Swap positions |
 
 ## Customization
 

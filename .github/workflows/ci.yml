@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [test, main]
+  pull_request:
+
+jobs:
+  lint-test-build:
+    name: Lint, test, package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npx eslint "src/**"
+      - name: Engine and state machine tests
+        run: make test
+      - name: Build package
+        run: make build
+      - name: Upload kwinscript artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tessera.kwinscript
+          path: tessera.kwinscript
+
+  container-build:
+    name: Container build (${{ matrix.distro }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [arch, fedora]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure podman is available
+        run: |
+          if ! command -v podman &>/dev/null; then
+            sudo apt-get update -qq && sudo apt-get install -y podman
+          fi
+      - name: Run distro build pipeline test
+        run: ./dev/test-install.sh ${{ matrix.distro }}

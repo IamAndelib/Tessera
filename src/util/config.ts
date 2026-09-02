@@ -53,8 +53,6 @@ export class Config {
 
         this.maximizeSingle = rc("MaximizeSingle", false);
 
-        // 0 = unlimited
-        this.maxTiledWindows = rc("MaxTiledWindows", 5);
         // 0 = unlimited (per layout half, counts the half the next window targets)
         this.maxTiledWindowsPerHalf = rc("MaxTiledWindowsPerHalf", 4);
 
@@ -64,11 +62,10 @@ export class Config {
         );
 
         // Hyprland dwindle: new windows split from the focused window; the
-    // cascade emerges because the new window takes focus. Fixed left/right
-    // pile insertion remains selectable.
-    this.insertionPoint = rc("InsertionPoint", InsertionPoint.Active);
+        // cascade emerges because the new window takes focus. Fixed left/right
+        // pile insertion remains selectable.
+        this.insertionPoint = rc("InsertionPoint", InsertionPoint.Active);
         this.rotateLayout = rc("RotateLayout", false);
-        this.autoRotateLayout = rc("AutoRotateLayout", true);
 
         // Hyprland-style dwindle options
         this.preserveSplit = rc("PreserveSplit", false);
@@ -89,9 +86,6 @@ export class Config {
 
     maximizeSingle: boolean = false;
 
-    // max windows tiled per desktop before new ones float (0 = unlimited)
-    maxTiledWindows: number = 5;
-
     // max windows tiled per layout half before new ones float (0 = unlimited).
     // The "half" is the root-level side the next window targets (the dwindle
     // pile for dwindle insertion, or the active window's side for Active).
@@ -99,7 +93,6 @@ export class Config {
 
     insertionPoint: InsertionPoint = InsertionPoint.Active;
     rotateLayout: boolean = false;
-    autoRotateLayout: boolean = true;
 
     // Hyprland-style dwindle options
     preserveSplit: boolean = false; // Keep split directions permanent

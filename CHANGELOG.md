@@ -6,7 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Overhaul: true Hyprland dwindle with COSMIC-style float/tile duality
+
+Tessera's identity is now explicit: Hyprland's dwindle behavior and keybinds,
+COSMIC's tiled/floating duality with OSD feedback, and Tessera's per-half
+window cap. See `ROADMAP.md` for the full development constitution.
+
 ### Added
+- **Aspect-based dwindle splits**: every split follows the longer axis of the
+  tile's real geometry, like Hyprland. Ultrawide, portrait and manually
+  resized tiles all produce correct orientations; `AutoRotateLayout` is
+  superseded and removed.
+- **Focus-driven insertion** (`InsertionPoint` default is now `Active`): new
+  windows split from the focused window and the dwindle cascade emerges from
+  focus, exactly like Hyprland. Fixed left/right pile insertion remains
+  selectable.
+- **Pinned split toggles** (`Meta+T`): toggling the focused window's parent
+  split pins its direction across relayouts, without requiring
+  `PreserveSplit` (Hyprland `togglesplit` semantics).
+- **Cross-display navigation**: directional focus and move shortcuts migrate
+  to the neighboring display when the pressed direction leaves the current
+  screen (COSMIC/Hyprland behavior).
+- **OSD feedback for Tile/Untile Window** (`Meta+Shift+Space`): a Plasma OSD
+  pill shows "Window tiled" / "Window floated", completing the COSMIC-style
+  switch feedback alongside the tiling toggle.
 - Default `Meta+Shift+O` keybinding for `TesseraRotateLayout`, which toggles
   the layout orientation: two side-by-side windows become top/bottom (left on
   top, right on bottom) and back.
@@ -17,19 +40,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A system notification when Tessera is disabled from System Settings, warning
   that re-enabling mid-session needs a log out / log in (upstream KWin script
   reload limitation).
-- A transient on-screen indicator (OSD) when Toggle Tiling fires: a small pill
-  shows "Tiling enabled" or "Tiling disabled" so the switch is visible even
-  when the layout barely changes.
 
 ### Changed
+- Single window state machine: all lifecycle state lives in one authoritative
+  map (`FLOATING | TILED | OVERFLOWED`) and every transition flows through one
+  choke point, eliminating the double-registration and promotion dead-end bug
+  class. Covered by new deterministic tests (`make test`).
 - Tiling no longer depends on the external `org.tessera.SettingSaver` DBus
   daemon: per-desktop engine settings are kept in memory for the session, and
   the setting-over-DBus actions were removed.
 
 ### Removed
-- The quick settings dialog (`TesseraOpenSettings` / `Meta+\`) and the on-screen
-  display (OSD) were removed to keep the script lean. Settings remain available
-  via System Settings > KWin Scripts > Tessera (Configure), and over DBus.
+- The swap-directional (`Meta+Alt+H/J/K/L`) and swap-with-sibling (`Meta+S`)
+  shortcuts: directional move covers the same ground, keeping the keybind set
+  minimal and Hyprland-aligned.
+- The quick settings dialog (`TesseraOpenSettings` / `Meta+\`) and the old
+  on-screen display: settings remain available via System Settings > KWin
+  Scripts > Tessera (Configure), and feedback now comes from the native OSD
+  service.
+- Dead config options `MaxTiledWindows` (never enforced; the per-half cap is
+  the real policy) and `AutoRotateLayout` (superseded by aspect-based splits).
 
 ## [1.5.0] - 2026-08-29
 

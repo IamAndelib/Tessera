@@ -9,7 +9,14 @@
 </p>
 
 <p align="center">
-  Tessera is a KWin tiling script that brings the clean, intuitive dwindle tiling behavior of Hyprland to KDE Plasma. Based on Polonium, it has been streamlined and enhanced with Hyprland-specific features.
+  Tessera does one thing: real Hyprland-style dwindle tiling on KDE Plasma.
+  Windows tile by the dwindle rule — every split follows the longer axis of
+  the tile — new windows split from the window you are focused on, and the
+  classic cascade emerges from your focus. A sane cap keeps the layout
+  readable: once a half is full, new windows float above the tiled layer and
+  the oldest floater takes the next freed slot. Grab a tiled window and it
+  floats; snap it to a screen edge and it tiles again — with an on-screen
+  indicator for every switch.
 </p>
 
 <p align="center">
@@ -19,14 +26,25 @@
 
 ## Features
 
--   **Dwindle Layout** — Windows tile in a spiral pattern, alternating split direction by depth
--   **Active Insertion** — New windows open next to the currently focused window
--   **Hyprland-style Options:**
-    -   `PreserveSplit` — Remember split directions permanently
-    -   `ForceSplit` — Force all splits to a specific direction (left/top or right/bottom)
--   **Tiled Window Stacking** — Control z-order: keep tiled windows above or below floating ones
--   **Clean Focus Behavior** — Click any window to focus, no stacking restrictions
--   **Keyboard Shortcuts** — Focus navigation, resizing, window insertion, layout rotation
+-   **True dwindle layout** — splits follow the real aspect ratio of each tile
+    (Hyprland behavior), not a fixed alternation, so ultrawide, portrait and
+    resized monitors all produce sensible layouts
+-   **Focus-driven insertion** — new windows split from the focused window,
+    like Hyprland; fixed left/right pile insertion remains as an option
+-   **Tiled window cap** — at most N tiled windows per layout half (default 4);
+    overflow windows float above the tiled layer and are promoted FIFO when a
+    slot frees up on the half they target
+-   **Float/tile duality with feedback** — drag a tiled window out and it
+    floats; snap it to an edge and it tiles; every switch shows an OSD pill
+    (COSMIC-style), including the master tiling toggle
+-   **Hyprland split controls** — `PreserveSplit` remembers split directions,
+    `ForceSplit` pins them, and Toggle Split (`Meta+T`) pins the focused
+    split on demand without any option
+-   **Keyboard navigation** — directional focus, move and resize shortcuts
+    that cross monitor boundaries at screen edges
+-   **Native-first design** — animations, notifications, OSD, edge snapping
+    and workspace handling come from KWin/Plasma; Tessera only implements
+    what KWin lacks
 
 ## Installation
 
@@ -101,7 +119,7 @@ This includes:
 ### Conflicting KWin Settings
 
 - **"Ignore requested geometry"** window rules prevent Tessera from controlling tiled window positions. Do not apply this rule to tiled windows.
-- **Native Plasma tiling** (Plasma 6.4+, `Meta+T`) should be disabled if using Tessera, as both attempt to tile windows simultaneously.
+- **Native Plasma tiling** (Plasma 6.4+, `Meta+T` region tiling) should be disabled if using Tessera, as both attempt to tile windows simultaneously.
 
 ## Configuration
 
@@ -118,51 +136,49 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 
 | Option                | Description                                                       | Default                                       |
 | --------------------- | ----------------------------------------------------------------- | --------------------------------------------- |
-| `InsertionPoint`      | Where new windows appear: Left, Right, or Active                  | Left                                          |
-| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Normal                                        |
+| `InsertionPoint`      | Where new windows appear: Left, Right, or Active (focused window) | Active                                        |
+| `MaxTiledWindowsPerHalf` | Max tiled windows per layout half before new windows float (0 = unlimited) | 4                                  |
+| `TiledWindowStacking` | Stacking order of tiled windows (Normal/Keep Above/Keep Below)    | Keep Below                                    |
 | `MaximizeSingle`      | Maximize when only one window exists                              | Off                                           |
 | `FilterProcess`       | Process names to exclude from tiling (comma-separated)            | `krunner, yakuake, kded, polkit, plasmashell` |
 | `FilterCaption`       | Window captions to exclude from tiling (comma-separated)          | _(empty)_                                     |
 | `TilePopups`          | Include popup/transient windows in tiling                         | Off                                           |
 | `PreserveSplit`       | Keep split directions permanent                                   | Off                                           |
 | `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                      |
-| `RotateLayout`        | Vertical-first layout (top/bottom splits instead of side-by-side) | Off                                           |
-| `AutoRotateLayout`    | Adapt to portrait monitors automatically                          | On                                            |
+| `RotateLayout`        | Transpose the aspect-based split decision (vertical-first on landscape) | Off                                     |
+| `Debug`               | Enable debug logging                                              | Off                                           |
 
 ## Keyboard Shortcuts
 
 Configure in **System Settings > Shortcuts > Window Management** (search "Tessera"):
 
-| Action                 | Default Shortcut   | Description                                               |
-| ---------------------- | ------------------ | --------------------------------------------------------- |
-| Toggle Tiling          | `Meta+Shift+E`     | Enable/disable tiling on the fly: restore all windows and stop, or start tiling again                                        |
-| Tile/Untile Window     | `Meta+Shift+Space` | Toggle tiling for the active window                       |
-| Focus Above            | `Meta+K`           | Move focus to the window above                            |
-| Focus Below            | `Meta+J`           | Move focus to the window below                            |
-| Focus Left             | `Meta+H`           | Move focus to the window on the left                      |
-| Focus Right            | `Meta+L`           | Move focus to the window on the right                     |
-| Move Window Up         | `Meta+Shift+K`     | Move the active window up in the layout                   |
-| Move Window Down       | `Meta+Shift+J`     | Move the active window down in the layout                 |
-| Move Window Left       | `Meta+Shift+H`     | Move the active window left in the layout                 |
-| Move Window Right      | `Meta+Shift+L`     | Move the active window right in the layout                |
-| Resize Up              | `Meta+Ctrl+K`      | Expand the tile border upward                             |
-| Resize Down            | `Meta+Ctrl+J`      | Expand the tile border downward                           |
-| Resize Left            | `Meta+Ctrl+H`      | Expand the tile border to the left                        |
-| Resize Right           | `Meta+Ctrl+L`      | Expand the tile border to the right                       |
-| Swap with Sibling      | `Meta+S`           | Swap the active window with its sibling in the tree       |
-| Swap Up                | `Meta+Alt+K`       | Swap the active window with the one above                 |
-| Swap Down              | `Meta+Alt+J`       | Swap the active window with the one below                 |
-| Swap Left              | `Meta+Alt+H`       | Swap the active window with the one on the left           |
-| Swap Right             | `Meta+Alt+L`       | Swap the active window with the one on the right          |
-| Swap Halves            | `Meta+Shift+S`     | Swap the two tiling halves of the screen                  |
-| Toggle Split Direction | `Meta+T`           | Toggle between horizontal and vertical split              |
-| Cycle Windows Next     | `Meta+Tab`         | Cycle focus to the next tiled window                      |
-| Cycle Windows Previous | `Meta+Shift+Tab`   | Cycle focus to the previous tiled window                  |
-| Toggle Layout Orientation | `Meta+Shift+O`     | Toggle between side-by-side and top/bottom layout. Side-by-side windows become top/bottom (left on top, right on bottom). |
+| Action                 | Default Shortcut   | Hyprland analog  | Description                                               |
+| ---------------------- | ------------------ | ---------------- | --------------------------------------------------------- |
+| Toggle Tiling          | `Meta+Shift+E`     | —                | Enable/disable tiling on the fly: restore all windows and stop, or start tiling again |
+| Tile/Untile Window     | `Meta+Shift+Space` | `togglefloating` | Toggle tiling for the active window                       |
+| Focus Above            | `Meta+K`           | `movefocus`      | Move focus to the window above (crosses displays)         |
+| Focus Below            | `Meta+J`           | `movefocus`      | Move focus to the window below (crosses displays)         |
+| Focus Left             | `Meta+H`           | `movefocus`      | Move focus to the window on the left (crosses displays)   |
+| Focus Right            | `Meta+L`           | `movefocus`      | Move focus to the window on the right (crosses displays)  |
+| Move Window Up         | `Meta+Shift+K`     | `movewindow`     | Move the active window up in the layout (crosses displays) |
+| Move Window Down       | `Meta+Shift+J`     | `movewindow`     | Move the active window down in the layout (crosses displays) |
+| Move Window Left       | `Meta+Shift+H`     | `movewindow`     | Move the active window left in the layout (crosses displays) |
+| Move Window Right      | `Meta+Shift+L`     | `movewindow`     | Move the active window right in the layout (crosses displays) |
+| Resize Up              | `Meta+Ctrl+K`      | `resizeactive`   | Expand the tile border upward                             |
+| Resize Down            | `Meta+Ctrl+J`      | `resizeactive`   | Expand the tile border downward                           |
+| Resize Left            | `Meta+Ctrl+H`      | `resizeactive`   | Expand the tile border to the left                        |
+| Resize Right           | `Meta+Ctrl+L`      | `resizeactive`   | Expand the tile border to the right                       |
+| Toggle Split Direction | `Meta+T`           | `togglesplit`    | Toggle the focused window's parent split; the direction stays pinned across relayouts |
+| Swap Halves            | `Meta+Shift+S`     | —                | Swap the two tiling halves of the screen; the dwindle pile regrows on the freed side |
+| Toggle Layout Orientation | `Meta+Shift+O`  | —                | Transpose the layout: side-by-side windows become top/bottom and back |
+| Cycle Windows Next     | `Meta+Tab`         | `cyclenext`      | Cycle focus to the next tiled window                      |
+| Cycle Windows Previous | `Meta+Shift+Tab`   | `cycleprev`      | Cycle focus to the previous tiled window                  |
 
 ## Credits
 
-Based on [Polonium](https://github.com/zeroxoneafour/polonium) by Vaughan Milliman.
+-   Based on [Polonium](https://github.com/zeroxoneafour/polonium) by Vaughan Milliman.
+-   Dwindle behavior and keybind philosophy modeled on [Hyprland](https://hyprland.org).
+-   Tiled/floating duality and toggle feedback modeled on [COSMIC DE](https://system76.com/cosmic).
 
 ## License
 
