@@ -13,6 +13,17 @@ COSMIC's tiled/floating duality with OSD feedback, and Tessera's per-half
 window cap. See `ROADMAP.md` for the full development constitution.
 
 ### Added
+- **Preselect** (`TesseraPreselectLeft/Right/Above/Below`, unbound by
+  default): choose the split direction and side for the NEXT window that
+  opens, with OSD feedback. One-shot by default, exactly like Hyprland's
+  `layoutmsg preselect`; the `PersistentDirectionOverride` option enables
+  Hyprland's `permanent_direction_override` mode.
+- **Split width multiplier**: biases the aspect-based split rule — values
+  above 1.0 favor top/bottom splits, below 1.0 favor side-by-side (Hyprland
+  `dwindle:split_width_multiplier`).
+- **Native Plasma tiling notice**: a one-time notification at startup when
+  custom Plasma tiles (`Meta+T`) already exist on a screen, recommending
+  native tiling be disabled.
 - **Aspect-based dwindle splits**: every split follows the longer axis of the
   tile's real geometry, like Hyprland. Ultrawide, portrait and manually
   resized tiles all produce correct orientations; `AutoRotateLayout` is

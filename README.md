@@ -150,6 +150,22 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 | `RotateLayout`        | Transpose the aspect-based split decision (vertical-first on landscape) | Off                                     |
 | `Debug`               | Enable debug logging                                              | Off                                           |
 
+### Per-app exceptions
+
+**Keep an app out of the layout** (it always floats): use Tessera's own
+`FilterProcess` / `FilterCaption` options — add the app's window class
+(`qdbus6 org.kde.KWin /KWin org.kde.KWin.queryWindowInfo` while the window is
+focused shows `resourceClass`) or a caption substring, comma-separated. This
+is the reliable mechanism for per-app floating; the windows are then
+completely ignored by the layout.
+
+**KWin window rules** (System Settings > Window Management > Window Rules)
+remain fully native and useful for geometry defaults, but note they cannot
+exempt a window from a tiling script: a rule cannot say "don't tile". Worse,
+the **"Ignore requested geometry"** rule actively conflicts with Tessera
+(see Compatibility above). Use Tessera's filters for tilability, KWin rules
+for everything else.
+
 ## Keyboard Shortcuts
 
 Configure in **System Settings > Shortcuts > Window Management** (search "Tessera"):
