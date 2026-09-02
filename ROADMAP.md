@@ -234,6 +234,53 @@ entries).
 | Script-side animations | Compositor-effect territory; native effects suffice |
 | X11 support | KWin tiling API is Wayland-only |
 
+## Source Audit (Hyprland + COSMIC, post-M4)
+
+The engine was audited against the actual implementations: Hyprland
+`src/layout/algorithm/tiled/dwindle/DwindleAlgorithm.cpp` and cosmic-comp
+`src/shell/layout/tiling/mod.rs` / `floating/mod.rs`.
+
+**Verified equivalent (kept as-is):** longer-axis dynamic splits; per-node
+geometry computed top-down from the work area; sibling-promotion on removal;
+insertion anchored at the focused window; 50/50 default split ratios;
+orientation toggle; toggle-tiling with visible feedback. COSMIC's N-ary
+groups were deliberately not adopted (binary tree is the Hyprland model we
+target), and its group pill indicators need compositor effects (out of
+scope for a KWin script).
+
+**Kept where we are better:**
+- `Meta+T` toggle-split works without `PreserveSplit`. Hyprland's
+  `togglesplit` is silently overwritten by the dynamic rule at default
+  config; ours pins the node.
+- Per-half cap + FIFO promotion (exists in neither project).
+- Cross-output focus/move always on (Hyprland gates it behind
+  `binds:window_direction_monitor_fallback`).
+- Deterministic test harness (neither project has tests).
+- Fullscreen handling stays Tessera-style (exit fullscreen/maximized on new
+  windows) — decided against Hyprland's pause-relayout approach in review.
+
+**Adopted from Hyprland in Phase B:** `preselect` (choose the split
+direction and side for the next inserted window, one-shot by default with a
+persistent-override option) and `split_width_multiplier` (biases the aspect
+comparison). Both are proven mechanisms, both map cleanly onto our engine.
+
+## Phase B — Proven-parity additions
+
+- **B1 Preselect**: `engine.preselect(dir)` consumed by the split created for
+  the next inserted window; chooses axis *and* side (Left/Up → first child,
+  Right/Down → second child, matching Hyprland's `m_overrideDirection`
+  semantics). One-shot by default; `PersistentDirectionOverride` config for
+  the permanent mode. Four shortcuts (`TesseraPreselect*`, unbound by
+  default) with OSD feedback.
+- **B2 `SplitWidthMultiplier`**: multiplies the vertical axis in the aspect
+  comparison (`height * mult > width → vertical`), transposed under
+  `RotateLayout`. Default 1.0 (pure aspect).
+- **B5 Native-tiling notice**: one-time notification at init when foreign
+  (non-Tessera) tiles exist on an output — i.e. Plasma's `Meta+T` tiling is
+  in use — recommending it be disabled.
+- **B4 Docs**: per-app exceptions section (Tessera filters + KWin window
+  rules interplay).
+
 ## Testing & Release Strategy
 
 - Every milestone keeps `make test` green before commit; one commit per
