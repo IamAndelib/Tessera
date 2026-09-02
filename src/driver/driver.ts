@@ -52,6 +52,9 @@ export class TilingDriver {
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
+    // this driver's output root tile (set on every buildLayout pass); source
+    // of the tileable-area geometry for aspect-based splits
+    private rootKwinTile: Kwin.Tile | null = null;
     // authoritative lifecycle state per managed window (insertion order of
     // Overflowed entries is the FIFO promotion order)
     private windowStates: Map<Kwin.Window, TilingState> = new Map();
@@ -178,7 +181,7 @@ export class TilingDriver {
         this.engine.config.preserveSplit = config.preserveSplit;
         this.engine.config.forceSplit = config.forceSplit;
         try {
-            this.engine.buildLayout();
+            this.rebuildEngine();
         } catch (e) {
             this.logger.error(e);
         }
@@ -191,7 +194,41 @@ export class TilingDriver {
         this.config = ctrl.config;
     }
 
+    // the tileable area of this driver's output, used by the engine for
+    // aspect-based (Hyprland) split decisions. Null when unknown (fresh
+    // driver before its first buildLayout), which makes the engine fall
+    // back to depth-alternating splits.
+    private rootGeometry(): { width: number; height: number } | null {
+        const root = this.rootKwinTile;
+        if (root == null) {
+            return null;
+        }
+        try {
+            const geometry = root.absoluteGeometry;
+            if (geometry.width <= 0 || geometry.height <= 0) {
+                return null;
+            }
+            return { width: geometry.width, height: geometry.height };
+        } catch (e) {
+            this.logger.error(e);
+            return null;
+        }
+    }
+
+    // rebuild the engine layout with real screen geometry so splits follow
+    // the actual tile aspect ratios
+    private rebuildEngine(): void {
+        this.engine.buildLayout(this.rootGeometry() ?? undefined);
+    }
+
     buildLayout(rootTile: Kwin.Tile): void {
+        // remember the root tile: it is the source of the tileable area
+        // geometry for aspect-based splits on later engine rebuilds
+        this.rootKwinTile = rootTile;
+        // rebuild the engine with real geometry so the tree we apply carries
+        // aspect-aware split directions (also covers fresh drivers whose
+        // first tiling happens before this method ever ran)
+        this.rebuildEngine();
         // clear root tile
         while (rootTile.tiles.length > 0) {
             rootTile.tiles[0].remove();
@@ -428,7 +465,7 @@ export class TilingDriver {
         this.transition(window, TilingState.Floating, cause);
         try {
             this.engine.removeClient(client);
-            this.engine.buildLayout();
+            this.rebuildEngine();
         } catch (e) {
             this.logger.error(e);
         }
@@ -455,7 +492,7 @@ export class TilingDriver {
         this.forget(window);
         try {
             this.engine.removeClient(client);
-            this.engine.buildLayout();
+            this.rebuildEngine();
         } catch (e) {
             this.logger.error(e);
             return false;
@@ -614,7 +651,7 @@ export class TilingDriver {
             } else {
                 this.engine.putClientInTile(client, activeTile);
             }
-            this.engine.buildLayout();
+            this.rebuildEngine();
             this.transition(window, TilingState.Tiled, "added");
         } catch (e) {
             this.logger.error(e);
@@ -675,7 +712,7 @@ export class TilingDriver {
                 );
             }
             this.engine.putClientInTile(client, tile, rotatedDirection);
-            this.engine.buildLayout();
+            this.rebuildEngine();
             // a floater (including a capped-out one) that found a slot is tiled
             this.transition(window, TilingState.Tiled, "added");
         } catch (e) {
@@ -742,7 +779,7 @@ export class TilingDriver {
         this.regenerateLayout(rootTile);
         if (this.engine.swapHalves()) {
             try {
-                this.engine.buildLayout();
+                this.rebuildEngine();
                 return true;
             } catch (e) {
                 this.logger.error(e);

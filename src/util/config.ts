@@ -63,7 +63,10 @@ export class Config {
             TiledWindowStacking.KeepBelow,
         );
 
-        this.insertionPoint = rc("InsertionPoint", InsertionPoint.Right);
+        // Hyprland dwindle: new windows split from the focused window; the
+    // cascade emerges because the new window takes focus. Fixed left/right
+    // pile insertion remains selectable.
+    this.insertionPoint = rc("InsertionPoint", InsertionPoint.Active);
         this.rotateLayout = rc("RotateLayout", false);
         this.autoRotateLayout = rc("AutoRotateLayout", true);
 
@@ -94,7 +97,7 @@ export class Config {
     // pile for dwindle insertion, or the active window's side for Active).
     maxTiledWindowsPerHalf: number = 4;
 
-    insertionPoint: InsertionPoint = InsertionPoint.Right;
+    insertionPoint: InsertionPoint = InsertionPoint.Active;
     rotateLayout: boolean = false;
     autoRotateLayout: boolean = true;
 

@@ -137,9 +137,13 @@ class TreeNode {
     client: Client | null = null;
     // ratio of child 1 to self
     sizeRatio: number = 0.5;
-    // Hyprland-style: stored split direction (1=horizontal, 2=vertical, 0=not yet determined)
-    // Used for preserve_split to remember the direction when a node was first split
+    // stored split direction (1=horizontal, 2=vertical, 0=not yet determined).
+    // Used by preserve_split, explicit toggles, and as the record of what the
+    // last layout build decided.
     splitDirection: number = 0;
+    // explicitly pinned by toggleSplit: keeps its direction regardless of
+    // geometry or the preserveSplit setting, like Hyprland's togglesplit
+    splitPinned: boolean = false;
     // splits tile
     split(): void {
         // cannot already have children
@@ -237,7 +241,7 @@ export class BTreeEngine {
         this.config = config;
     }
 
-    buildLayout() {
+    buildLayout(rootGeometry?: { width: number; height: number }): void {
         // set original tile direction based on rotating layout or not
         this.rootTile = new Tile();
         const baseDir = this.config.rotateLayout
@@ -247,13 +251,30 @@ export class BTreeEngine {
         // set up
         this.nodeMap = new BiMap();
 
+        // aspect-based splitting (Hyprland dwindle): cut along the longer
+        // axis of each node's real tile geometry. Without a root geometry
+        // (stubbed harness / unknown screen) fall back to depth alternation.
+        const useAspect = rootGeometry != undefined;
+        const rootWidth = rootGeometry?.width ?? 0;
+        const rootHeight = rootGeometry?.height ?? 0;
+
         // Track depth for dwindle alternating splits
-        const queue: Queue<{ node: TreeNode; depth: number }> = new Queue();
-        queue.enqueue({ node: this.rootNode, depth: 0 });
+        const queue: Queue<{
+            node: TreeNode;
+            depth: number;
+            width: number;
+            height: number;
+        }> = new Queue();
+        queue.enqueue({
+            node: this.rootNode,
+            depth: 0,
+            width: rootWidth,
+            height: rootHeight,
+        });
         this.nodeMap.set(this.rootNode, this.rootTile);
 
         while (queue.size > 0) {
-            const { node, depth } = queue.dequeue()!;
+            const { node, depth, width, height } = queue.dequeue()!;
             const tile = this.nodeMap.get(node);
             if (tile == undefined) {
                 continue;
@@ -265,15 +286,33 @@ export class BTreeEngine {
             if (node.children != null) {
                 let splitDir: number;
 
-                if (this.config.preserveSplit && node.splitDirection !== 0) {
+                if (node.splitPinned && node.splitDirection !== 0) {
+                    // explicitly toggled by the user: keep this direction
+                    splitDir = node.splitDirection;
+                } else if (
+                    this.config.preserveSplit &&
+                    node.splitDirection !== 0
+                ) {
                     // Use preserved split direction if enabled and previously set
                     splitDir = node.splitDirection;
-                } else if (this.config.forceSplit !== ForceSplit.Disabled) {
+                } else if (
+                    this.config.forceSplit !== ForceSplit.Disabled
+                ) {
                     // Use forced direction if configured
                     splitDir =
                         this.config.forceSplit === ForceSplit.LeftTop
                             ? LayoutDirection.Vertical
                             : LayoutDirection.Horizontal;
+                } else if (useAspect) {
+                    // Hyprland dwindle: cut along the longer axis of the
+                    // tile's actual geometry. rotateLayout transposes the
+                    // aspect comparison so the decision lands rotated.
+                    const primary = this.config.rotateLayout ? height : width;
+                    const secondary = this.config.rotateLayout ? width : height;
+                    splitDir =
+                        primary >= secondary
+                            ? LayoutDirection.Horizontal
+                            : LayoutDirection.Vertical;
                 } else {
                     // Dwindle: alternate split direction based on depth
                     splitDir =
@@ -284,7 +323,7 @@ export class BTreeEngine {
                               : LayoutDirection.Horizontal;
                 }
 
-                // Store direction for preserve_split feature
+                // Store direction for preserve_split / pinned features
                 node.splitDirection = splitDir;
 
                 // Set the tile's layout direction before splitting
@@ -295,13 +334,25 @@ export class BTreeEngine {
                 this.nodeMap.set(node.children[1], tile.tiles[1]);
 
                 // Apply split ratio from node state, defaulting to even 50/50
-                tile.tiles[0].relativeSize =
-                    node.sizeRatio !== 0.5 ? node.sizeRatio : 0.5;
-                tile.tiles[1].relativeSize =
-                    node.sizeRatio !== 0.5 ? 1 - node.sizeRatio : 0.5;
+                const ratio = node.sizeRatio !== 0.5 ? node.sizeRatio : 0.5;
+                tile.tiles[0].relativeSize = ratio;
+                tile.tiles[1].relativeSize = 1 - ratio;
 
-                queue.enqueue({ node: node.children[0], depth: depth + 1 });
-                queue.enqueue({ node: node.children[1], depth: depth + 1 });
+                // Children geometry: split the node's area by the ratio
+                // along the split axis
+                const horizontal = splitDir === LayoutDirection.Horizontal;
+                queue.enqueue({
+                    node: node.children[0],
+                    depth: depth + 1,
+                    width: horizontal ? width * ratio : width,
+                    height: horizontal ? height : height * ratio,
+                });
+                queue.enqueue({
+                    node: node.children[1],
+                    depth: depth + 1,
+                    width: horizontal ? width * (1 - ratio) : width,
+                    height: horizontal ? height : height * (1 - ratio),
+                });
             }
         }
     }
@@ -439,7 +490,9 @@ export class BTreeEngine {
         return node?.sibling?.client ?? null;
     }
 
-    // Hyprland-style: toggle split direction at the parent of a client
+    // Hyprland-style: toggle split direction at the parent of a client.
+    // The affected node is pinned so its direction survives rebuilds even
+    // without preserveSplit (like Hyprland's togglesplit).
     toggleSplit(client: Client): boolean {
         const node = findNode(
             this.rootNode,
@@ -456,6 +509,7 @@ export class BTreeEngine {
             node.parent.splitDirection === LayoutDirection.Horizontal
                 ? LayoutDirection.Vertical
                 : LayoutDirection.Horizontal;
+        node.parent.splitPinned = true;
         return true;
     }
 

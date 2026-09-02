@@ -60,20 +60,9 @@ export class DriverManager {
                     "Creating new engine for desktop",
                     desktopString,
                 );
-                let rotateLayout = this.config.rotateLayout;
-                if (
-                    this.config.autoRotateLayout &&
-                    desktop.output.geometry.width <
-                        desktop.output.geometry.height
-                ) {
-                    this.logger.debug(
-                        "Auto rotate layout for desktop",
-                        desktopString,
-                    );
-                    rotateLayout = !rotateLayout;
-                }
+                // orientation is decided per split by the engine's
+                // aspect-based dwindle, so no portrait special-casing here
                 const config = this.config.createDefaultEngineConfig();
-                config.rotateLayout = rotateLayout;
                 const engine = new BTreeEngine(config);
                 const driver = new TilingDriver(engine, this.ctrl);
                 this.drivers.set(desktopString, driver);

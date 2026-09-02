@@ -332,6 +332,134 @@ function engine() {
     );
 }
 
+// --- M2: aspect-based (Hyprland) split directions ---
+
+function aspectEngine(rotate: boolean) {
+    return new BTreeEngine({
+        insertionPoint: 1,
+        rotateLayout: rotate,
+        preserveSplit: false,
+        forceSplit: 0,
+    });
+}
+
+// landscape screen: two windows split side by side (longer axis first)
+{
+    const e = aspectEngine(false);
+    ["A", "B"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout({ width: 1600, height: 900 });
+    });
+    const rt = e.rootTile;
+    check(
+        "aspect 1600x900: root splits Horizontal",
+        rt.layoutDirection === H,
+        "got " + rt.layoutDirection,
+    );
+}
+
+// portrait screen: same two windows split top/bottom
+{
+    const e = aspectEngine(false);
+    ["A", "B"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout({ width: 900, height: 1600 });
+    });
+    const rt = e.rootTile;
+    check(
+        "aspect 900x1600: root splits Vertical",
+        rt.layoutDirection === V,
+        "got " + rt.layoutDirection,
+    );
+}
+
+// cascade on 16:9 still matches the classic dwindle pattern
+{
+    const e = aspectEngine(false);
+    ["A", "B", "C", "D"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout({ width: 1600, height: 900 });
+    });
+    const rt = e.rootTile;
+    check(
+        "aspect 16:9 cascade: A left, B top-right",
+        own(rt.tiles[0]) === "A" && own(rt.tiles[1].tiles[0]) === "B",
+        own(rt.tiles[0]) + "|" + own(rt.tiles[1].tiles[0]),
+    );
+    check(
+        "aspect 16:9 cascade: bottom-right splits Horizontal",
+        rt.tiles[1].tiles[1].layoutDirection === H,
+        "got " + rt.tiles[1].tiles[1].layoutDirection,
+    );
+}
+
+// split direction follows the REAL geometry of each node: a wide remainder
+// splits horizontally where depth-parity would have gone vertical
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    // shrink A to a quarter: its sibling remainder becomes 1200x900 (wide)
+    e.rootTile.tiles[0].relativeSize = 0.25;
+    e.regenerateLayout();
+    e.addClient(mk("C"));
+    e.buildLayout({ width: 1600, height: 900 });
+    const right = e.rootTile.tiles[1];
+    check(
+        "wide remainder splits Horizontal (parity would say Vertical)",
+        right.layoutDirection === H &&
+            own(right.tiles[0]) === "B" &&
+            own(right.tiles[1]) === "C",
+        "dir=" + right.layoutDirection + " " + own(right.tiles[0]) + "|" + own(right.tiles[1]),
+    );
+}
+
+// rotateLayout transposes the aspect decision
+{
+    const e = aspectEngine(true);
+    ["A", "B"].forEach((n) => {
+        e.addClient(mk(n));
+        e.buildLayout({ width: 1600, height: 900 });
+    });
+    check(
+        "rotateLayout on landscape: root splits Vertical",
+        e.rootTile.layoutDirection === V,
+        "got " + e.rootTile.layoutDirection,
+    );
+    e.config.rotateLayout = false;
+    e.buildLayout({ width: 900, height: 1600 });
+    check(
+        "portrait without rotateLayout: root splits Vertical",
+        e.rootTile.layoutDirection === V,
+        "got " + e.rootTile.layoutDirection,
+    );
+}
+
+// toggleSplit pins a node's direction across rebuilds, geometry or not
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check("pre-toggle root is Horizontal", e.rootTile.layoutDirection === H);
+    const clientA = e.getAllClients()[0];
+    check("toggleSplit succeeds", e.toggleSplit(clientA) === true);
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "pinned direction survives aspect rebuild",
+        e.rootTile.layoutDirection === V,
+        "got " + e.rootTile.layoutDirection,
+    );
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "pin persists across rebuilds without preserveSplit",
+        e.rootTile.layoutDirection === V,
+        "got " + e.rootTile.layoutDirection,
+    );
+}
+
 // --- M1: driver window state machine ---
 
 function mkWindow(name: string): any {

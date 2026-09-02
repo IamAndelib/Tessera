@@ -173,9 +173,10 @@ Comma separated list of process names.</string>
     <widget class="QComboBox" name="kcfg_InsertionPoint">
      <property name="toolTip">
       <string>Select where in the dwindle layout new windows are placed.
-"Left" and "Right" place new windows in the spiral from that direction
-(right/bottom bias is the default).
-"Active Window" splits the currently active window's tile.</string>
+"Active Window" (Hyprland-style default) splits the currently
+focused window's tile, so the dwindle cascade follows your focus.
+"Left" and "Right" place new windows in a fixed spiral pile
+from that direction instead.</string>
      </property>
      <item>
       <property name="text">
