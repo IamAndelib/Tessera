@@ -43,13 +43,14 @@ export interface Shortcuts {
 
     getRotateLayout(): ShortcutHandler;
 
+    // Hyprland-style preselect: split direction for the next window
+    getPreselectLeft(): ShortcutHandler;
+    getPreselectRight(): ShortcutHandler;
+    getPreselectAbove(): ShortcutHandler;
+    getPreselectBelow(): ShortcutHandler;
+
     // Hyprland-style shortcuts
     getSwapHalves(): ShortcutHandler;
-    getSwapWithSibling(): ShortcutHandler;
-    getSwapAbove(): ShortcutHandler;
-    getSwapBelow(): ShortcutHandler;
-    getSwapLeft(): ShortcutHandler;
-    getSwapRight(): ShortcutHandler;
     getToggleSplit(): ShortcutHandler;
     getCycleNext(): ShortcutHandler;
     getCyclePrev(): ShortcutHandler;

@@ -13,6 +13,19 @@ export interface EngineConfig {
     // Hyprland-style dwindle options
     preserveSplit: boolean; // Keep split directions permanent
     forceSplit: ForceSplit; // Force split direction
+    // Hyprland permanent_direction_override: preselect persists for every
+    // new window instead of being consumed once
+    persistentPreselect: boolean;
+}
+
+// Preselect: which side of a NEW split the next inserted window takes
+// (Hyprland layoutmsg preselect semantics). Left/Up imply a first-child
+// placement, Right/Down a second-child placement.
+export const enum Preselect {
+    Left = 0,
+    Right,
+    Up,
+    Down,
 }
 
 export class Client {
@@ -144,6 +157,9 @@ class TreeNode {
     // explicitly pinned by toggleSplit: keeps its direction regardless of
     // geometry or the preserveSplit setting, like Hyprland's togglesplit
     splitPinned: boolean = false;
+    // direction chosen for this split by a preselect; consumed by the next
+    // buildLayout (one-shot, survives exactly one rebuild)
+    splitPreselected: boolean = false;
     // splits tile
     split(): void {
         // cannot already have children
@@ -236,9 +252,37 @@ export class BTreeEngine {
     config: EngineConfig;
     // whether the driver should rotate insertion directions when rotateLayout is on
     translatesRotation: boolean = true;
+    // preselected split for the next inserted window (null = none)
+    private preselectedDirection: Preselect | null = null;
 
     constructor(config: EngineConfig) {
         this.config = config;
+    }
+
+    // Choose the split direction and side for the next inserted window
+    // (Hyprland layoutmsg preselect). Consumed by the next insertion unless
+    // persistentPreselect is enabled; pass null to clear.
+    preselect(direction: Preselect | null): void {
+        this.preselectedDirection = direction;
+    }
+
+    private consumePreselect(): Preselect | null {
+        const direction = this.preselectedDirection;
+        if (direction != null && !this.config.persistentPreselect) {
+            this.preselectedDirection = null;
+        }
+        return direction;
+    }
+
+    // mark a freshly created parent split to honor a preselected direction,
+    // and report which child the new client takes (first = left/top)
+    private markPreselectedSplit(node: TreeNode, pre: Preselect): boolean {
+        node.splitDirection =
+            pre === Preselect.Up || pre === Preselect.Down
+                ? LayoutDirection.Vertical
+                : LayoutDirection.Horizontal;
+        node.splitPreselected = true;
+        return pre === Preselect.Up || pre === Preselect.Left;
     }
 
     buildLayout(rootGeometry?: { width: number; height: number }): void {
@@ -286,7 +330,12 @@ export class BTreeEngine {
             if (node.children != null) {
                 let splitDir: number;
 
-                if (node.splitPinned && node.splitDirection !== 0) {
+                if (node.splitPreselected && node.splitDirection !== 0) {
+                    // direction chosen at insertion by a preselect; consumed
+                    // by this build and not applied again
+                    splitDir = node.splitDirection;
+                    node.splitPreselected = false;
+                } else if (node.splitPinned && node.splitDirection !== 0) {
                     // explicitly toggled by the user: keep this direction
                     splitDir = node.splitDirection;
                 } else if (
@@ -379,7 +428,18 @@ export class BTreeEngine {
         if (current.client != null) {
             // Split this node and add the new client
             current.split();
-            if (this.config.insertionPoint == InsertionPoint.Left) {
+            const pre = this.consumePreselect();
+            if (pre != null) {
+                // preselect decides the split axis and the client's side
+                const first = this.markPreselectedSplit(current, pre);
+                if (first) {
+                    current.children![0].client = client;
+                    current.children![1].client = current.client;
+                } else {
+                    current.children![0].client = current.client;
+                    current.children![1].client = client;
+                }
+            } else if (this.config.insertionPoint == InsertionPoint.Left) {
                 current.children![0].client = client;
                 current.children![1].client = current.client;
             } else {
@@ -413,6 +473,7 @@ export class BTreeEngine {
             node.split();
             // put new client in zeroth child, else put in first child
             let putClientInZero = false;
+            const pre = direction == undefined ? this.consumePreselect() : null;
             if (direction != undefined) {
                 if (tile.layoutDirection === LayoutDirection.Horizontal) {
                     // horizontal
@@ -425,6 +486,10 @@ export class BTreeEngine {
                         putClientInZero = true;
                     }
                 }
+            } else if (pre != null) {
+                // no explicit drop/snap direction: a preselect decides
+                // both the split axis and the client's side
+                putClientInZero = this.markPreselectedSplit(node, pre);
             }
             if (putClientInZero) {
                 node.children![0].client = client;

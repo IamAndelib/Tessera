@@ -8,7 +8,7 @@ import { QPoint } from "kwin-api/qt";
 import { Log } from "../../util/log";
 import { Config } from "../../util/config";
 import { TilingDriver } from "../../driver/driver";
-import { Client } from "../../engine";
+import { Client, Preselect } from "../../engine";
 
 const enum Direction {
     Above,
@@ -64,6 +64,20 @@ function gdirectionFromDirection(direction: Direction): GDirection {
     }
 }
 
+// the preselect side a NEW window takes for the pressed direction
+function preselectFromDirection(direction: Direction): Preselect {
+    switch (direction) {
+        case Direction.Above:
+            return Preselect.Up;
+        case Direction.Below:
+            return Preselect.Down;
+        case Direction.Left:
+            return Preselect.Left;
+        case Direction.Right:
+            return Preselect.Right;
+    }
+}
+
 export class ShortcutManager {
     private ctrl: Controller;
     private logger: Log;
@@ -106,6 +120,12 @@ export class ShortcutManager {
             { get: shortcuts.getResizeRight, fn: this.resize.bind(this, Direction.Right) },
 
             { get: shortcuts.getRotateLayout, fn: this.rotateLayout.bind(this) },
+
+            // Hyprland-style preselect: split direction for the next window
+            { get: shortcuts.getPreselectLeft, fn: this.preselect.bind(this, Direction.Left) },
+            { get: shortcuts.getPreselectRight, fn: this.preselect.bind(this, Direction.Right) },
+            { get: shortcuts.getPreselectAbove, fn: this.preselect.bind(this, Direction.Above) },
+            { get: shortcuts.getPreselectBelow, fn: this.preselect.bind(this, Direction.Below) },
 
             // Hyprland-style shortcuts
             { get: shortcuts.getSwapHalves, fn: this.swapHalves.bind(this) },
@@ -355,6 +375,24 @@ export class ShortcutManager {
         if (!engineConfig) return;
         engineConfig.rotateLayout = !engineConfig.rotateLayout;
         this.ctrl.driverManager.setEngineConfig(desktop, engineConfig);
+    }
+
+    // Hyprland layoutmsg preselect: choose the split direction and side for
+    // the next window that opens on the current desktop
+    preselect(direction: Direction): void {
+        this.ctrl.driverManager.preselect(preselectFromDirection(direction));
+        const side =
+            direction === Direction.Above
+                ? "top"
+                : direction === Direction.Below
+                  ? "bottom"
+                  : direction === Direction.Left
+                    ? "left"
+                    : "right";
+        this.ctrl.showOsd(
+            "transform-crop-and-resize",
+            "Next window splits " + side,
+        );
     }
 
     // Swap the two halves (root subtrees) of the current screen's layout

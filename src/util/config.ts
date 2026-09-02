@@ -70,6 +70,8 @@ export class Config {
         // Hyprland-style dwindle options
         this.preserveSplit = rc("PreserveSplit", false);
         this.forceSplit = rc("ForceSplit", ForceSplit.Disabled);
+        // preselect persists for every new window instead of one-shot
+        this.persistentPreselect = rc("PersistentDirectionOverride", false);
     }
 
     tilePopups: boolean = false;
@@ -97,6 +99,8 @@ export class Config {
     // Hyprland-style dwindle options
     preserveSplit: boolean = false; // Keep split directions permanent
     forceSplit: ForceSplit = ForceSplit.Disabled; // Force split direction
+    // preselect persists for every new window instead of one-shot
+    persistentPreselect: boolean = false;
 
     debug: boolean = false;
 
@@ -106,6 +110,7 @@ export class Config {
             rotateLayout: this.rotateLayout,
             preserveSplit: this.preserveSplit,
             forceSplit: this.forceSplit,
+            persistentPreselect: this.persistentPreselect,
         };
     }
 }

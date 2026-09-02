@@ -145,6 +145,7 @@ Access settings via **System Settings > Window Management > KWin Scripts > Tesse
 | `TilePopups`          | Include popup/transient windows in tiling                         | Off                                           |
 | `PreserveSplit`       | Keep split directions permanent                                   | Off                                           |
 | `ForceSplit`          | Force split direction (Disabled/Left-Top/Right-Bottom)            | Disabled                                      |
+| `PersistentDirectionOverride` | Make Preselect shortcuts persistent instead of one-shot (Hyprland `permanent_direction_override`) | Off |
 | `RotateLayout`        | Transpose the aspect-based split decision (vertical-first on landscape) | Off                                     |
 | `Debug`               | Enable debug logging                                              | Off                                           |
 
@@ -171,6 +172,10 @@ Configure in **System Settings > Shortcuts > Window Management** (search "Tesser
 | Toggle Split Direction | `Meta+T`           | `togglesplit`    | Toggle the focused window's parent split; the direction stays pinned across relayouts |
 | Swap Halves            | `Meta+Shift+S`     | —                | Swap the two tiling halves of the screen; the dwindle pile regrows on the freed side |
 | Toggle Layout Orientation | `Meta+Shift+O`  | —                | Transpose the layout: side-by-side windows become top/bottom and back |
+| Preselect Split Left   | _(unbound)_        | `preselect l`    | Next window opens to the left of the focused tile          |
+| Preselect Split Right  | _(unbound)_        | `preselect r`    | Next window opens to the right of the focused tile         |
+| Preselect Split Top    | _(unbound)_        | `preselect u`    | Next window opens on top of the focused tile               |
+| Preselect Split Bottom | _(unbound)_        | `preselect d`    | Next window opens on the bottom of the focused tile        |
 | Cycle Windows Next     | `Meta+Tab`         | `cyclenext`      | Cycle focus to the next tiled window                      |
 | Cycle Windows Previous | `Meta+Shift+Tab`   | `cycleprev`      | Cycle focus to the previous tiled window                  |
 

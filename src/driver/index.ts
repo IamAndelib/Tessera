@@ -1,7 +1,7 @@
 // driver.ts - Interface from engines to the controller
 
 import { TilingDriver, TilingCause } from "./driver";
-import { BTreeEngine, EngineConfig } from "../engine";
+import { BTreeEngine, EngineConfig, Preselect } from "../engine";
 import { Window, Tile, Output } from "kwin-api";
 import { QTimer } from "kwin-api/qt";
 import { Direction } from "../util/geometry";
@@ -345,6 +345,15 @@ export class DriverManager {
     // Get the driver for a specific desktop (used by shortcuts for Hyprland-style operations)
     getDriver(desktop: Desktop): TilingDriver | undefined {
         return this.drivers.get(desktop.toString());
+    }
+
+    // choose the split direction and side for the NEXT inserted window on
+    // the current desktop (Hyprland layoutmsg preselect)
+    preselect(direction: Preselect | null): void {
+        const driver = this.getDriver(
+            this.ctrl.desktopFactory.createDefaultDesktop(),
+        );
+        driver?.preselect(direction);
     }
 
     get driverCount(): number {

@@ -171,6 +171,52 @@ Item {
         sequence: "Meta+Shift+O";
     }
 
+    // Hyprland-style preselect: split direction for the NEXT window.
+    // Unbound by default; assign keys in System Settings.
+    function getPreselectLeft() {
+        return preselectLeft;
+    }
+    ShortcutHandler {
+        id: preselectLeft;
+
+        name: "TesseraPreselectLeft";
+        text: "Tessera: Preselect Split Left (Next Window)";
+        sequence: "";
+    }
+
+    function getPreselectRight() {
+        return preselectRight;
+    }
+    ShortcutHandler {
+        id: preselectRight;
+
+        name: "TesseraPreselectRight";
+        text: "Tessera: Preselect Split Right (Next Window)";
+        sequence: "";
+    }
+
+    function getPreselectAbove() {
+        return preselectAbove;
+    }
+    ShortcutHandler {
+        id: preselectAbove;
+
+        name: "TesseraPreselectAbove";
+        text: "Tessera: Preselect Split Top (Next Window)";
+        sequence: "";
+    }
+
+    function getPreselectBelow() {
+        return preselectBelow;
+    }
+    ShortcutHandler {
+        id: preselectBelow;
+
+        name: "TesseraPreselectBelow";
+        text: "Tessera: Preselect Split Bottom (Next Window)";
+        sequence: "";
+    }
+
     // Hyprland-style shortcuts
     function getSwapHalves() {
         return swapHalves;

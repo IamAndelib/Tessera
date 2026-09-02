@@ -3,7 +3,7 @@
 // "kwin-api/qt" are aliased at bundle time to test/stubs/*.mjs. Wired up via
 // `make test`.
 
-import { BTreeEngine, Client } from "../src/engine/index";
+import { BTreeEngine, Client, Preselect } from "../src/engine/index";
 import { TilingDriver, TilingState } from "../src/driver/driver";
 import { Log } from "../src/util/log";
 
@@ -32,6 +32,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     ["A", "B", "C", "D"].forEach((n) => {
         e.addClient(mk(n));
@@ -79,6 +80,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -99,6 +101,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         rotateLayout: true,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -120,6 +123,7 @@ const own = (t: any) => t.clients.map((c: any) => c.name).join(",") || "-";
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     ["A", "B", "C"].forEach((n) => {
         e.addClient(mk(n));
@@ -149,6 +153,7 @@ function engine() {
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
 }
 
@@ -296,6 +301,7 @@ function engine() {
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     ["A", "B"].forEach((n) => {
         e.addClient(mk(n));
@@ -340,6 +346,7 @@ function aspectEngine(rotate: boolean) {
         rotateLayout: rotate,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
 }
 
@@ -510,6 +517,7 @@ function mkDriver(cap: number): { driver: TilingDriver; extensions: Map<any, any
         rotateLayout: false,
         preserveSplit: false,
         forceSplit: 0,
+        persistentPreselect: false,
     });
     return { driver: new TilingDriver(engine, ctrl), extensions };
 }
@@ -686,6 +694,126 @@ function mkDriver(cap: number): { driver: TilingDriver; extensions: Map<any, any
     // a released window can be re-tiled explicitly
     driver.addWindow(C);
     check("C re-tiled after release", driver.stateOf(C) === TilingState.Tiled);
+}
+
+// --- B1: preselect (Hyprland layoutmsg preselect) ---
+
+function persistentEngine() {
+    return new BTreeEngine({
+        insertionPoint: 1,
+        rotateLayout: false,
+        preserveSplit: false,
+        forceSplit: 0,
+        persistentPreselect: true,
+    });
+}
+
+// one-shot preselect: decides axis AND side for exactly one insertion
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.preselect(Preselect.Left);
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "preselect Left: new window lands LEFT (beats right bias)",
+        own(e.rootTile.tiles[0]) === "B" && own(e.rootTile.tiles[1]) === "A",
+        own(e.rootTile.tiles[0]) + "|" + own(e.rootTile.tiles[1]),
+    );
+    e.addClient(mk("C"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "preselect consumed: C follows the default right-bias cascade",
+        own(e.rootTile.tiles[0]) === "B" &&
+            own(e.rootTile.tiles[1].tiles[0]) === "A" &&
+            own(e.rootTile.tiles[1].tiles[1]) === "C",
+        own(e.rootTile.tiles[0]) +
+            "|" +
+            own(e.rootTile.tiles[1].tiles[0]) +
+            "," +
+            own(e.rootTile.tiles[1].tiles[1]),
+    );
+}
+
+// preselect Up: vertical split with the new window on top; the choice is
+// consumed after one rebuild (aspect rules the next rebuild)
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.preselect(Preselect.Up);
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "preselect Up: root splits Vertical with B on top",
+        e.rootTile.layoutDirection === V && own(e.rootTile.tiles[0]) === "B",
+        "dir=" + e.rootTile.layoutDirection + " " + own(e.rootTile.tiles[0]),
+    );
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "consumed preselect falls back to aspect on rebuild",
+        e.rootTile.layoutDirection === H,
+        "dir=" + e.rootTile.layoutDirection,
+    );
+}
+
+// preselect Down puts the new window on the bottom side
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.preselect(Preselect.Down);
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "preselect Down: B lands on the bottom",
+        e.rootTile.layoutDirection === V && own(e.rootTile.tiles[1]) === "B",
+        "dir=" + e.rootTile.layoutDirection + " " + own(e.rootTile.tiles[1]),
+    );
+}
+
+// persistent mode: preselect applies to every new split and beats aspect
+{
+    const e = persistentEngine();
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.preselect(Preselect.Right);
+    e.addClient(mk("B"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "persistent preselect Right: B right",
+        own(e.rootTile.tiles[1]) === "B",
+        own(e.rootTile.tiles[0]) + "|" + own(e.rootTile.tiles[1]),
+    );
+    e.addClient(mk("C"));
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "persistent preselect beats aspect on later splits",
+        own(e.rootTile.tiles[1].tiles[0]) === "B" &&
+            own(e.rootTile.tiles[1].tiles[1]) === "C" &&
+            e.rootTile.tiles[1].layoutDirection === H,
+        own(e.rootTile.tiles[1].tiles[0]) +
+            "," +
+            own(e.rootTile.tiles[1].tiles[1]) +
+            " dir=" +
+            e.rootTile.tiles[1].layoutDirection,
+    );
+}
+
+// preselect via putClientInTile when no explicit drop direction is given
+{
+    const e = aspectEngine(false);
+    e.addClient(mk("A"));
+    e.buildLayout({ width: 1600, height: 900 });
+    e.preselect(Preselect.Up);
+    e.putClientInTile(mk("B"), e.rootTile);
+    e.buildLayout({ width: 1600, height: 900 });
+    check(
+        "putClientInTile honors preselect without explicit direction",
+        e.rootTile.layoutDirection === V && own(e.rootTile.tiles[0]) === "B",
+        "dir=" + e.rootTile.layoutDirection + " " + own(e.rootTile.tiles[0]),
+    );
 }
 
 console.log(

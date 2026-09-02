@@ -1,6 +1,6 @@
 // driver/driver.ts - Mapping from engines to Kwin API
 
-import { BTreeEngine, Tile, Client, EngineConfig } from "../engine";
+import { BTreeEngine, Preselect, Tile, Client, EngineConfig } from "../engine";
 import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
 import {
     InsertionPoint,
@@ -171,6 +171,7 @@ export class TilingDriver {
             // Hyprland-style dwindle options
             preserveSplit: this.engine.config.preserveSplit,
             forceSplit: this.engine.config.forceSplit,
+            persistentPreselect: this.engine.config.persistentPreselect,
         };
     }
 
@@ -180,11 +181,18 @@ export class TilingDriver {
         // Hyprland-style dwindle options
         this.engine.config.preserveSplit = config.preserveSplit;
         this.engine.config.forceSplit = config.forceSplit;
+        this.engine.config.persistentPreselect = config.persistentPreselect;
         try {
             this.rebuildEngine();
         } catch (e) {
             this.logger.error(e);
         }
+    }
+
+    // choose the split direction and side for the NEXT inserted window
+    // (Hyprland layoutmsg preselect)
+    preselect(direction: Preselect | null): void {
+        this.engine.preselect(direction);
     }
 
     constructor(engine: BTreeEngine, ctrl: Controller) {
