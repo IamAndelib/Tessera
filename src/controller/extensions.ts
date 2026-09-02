@@ -57,8 +57,10 @@ export class WindowExtensions {
     maximized: boolean = false;
     previousDesktops: Desktop[] = [];
     private previousDesktopsInternal: Desktop[] = [];
-    isTiled: boolean = false; // not is in a tile, but is registered in engine
-    wasTiled: boolean = false; // windows that were tiled when they could be (minimized/maximized/fullscreen)
+    // DERIVED FLAGS — written only by TilingDriver.transition() (the state
+    // machine choke point in driver/driver.ts). Never set them elsewhere.
+    isTiled: boolean = false; // true exactly when lifecycle state is Tiled
+    wasTiled: boolean = false; // suspended by min/max/fullscreen; restore on exit
     lastTiledLocation: GPoint | null = null;
     clientHooks: WindowHooks | null = null;
     isSingleMaximized: boolean = false; // whether the window is solo maximized or not (in accordance with maximize single windows)

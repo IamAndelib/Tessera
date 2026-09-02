@@ -201,8 +201,7 @@ export class WindowHooks {
         } else {
             this.ctrl.driverManager.addWindow(this.window);
         }
-        // Reset wasTiled flag after successfully re-tiling
-        this.extensions.wasTiled = false;
+        // wasTiled is reset by the state transition back into the tiled layer
         this.ctrl.driverManager.rebuildLayout(this.window.output);
     }
 
@@ -220,9 +219,10 @@ export class WindowHooks {
             logValue,
         );
         if (isEnteringState && this.extensions.isTiled) {
-            this.ctrl.driverManager.untileWindow(this.window);
+            // "suspended": the transition choke point marks wasTiled so
+            // leaving the state restores the window to its tile
+            this.ctrl.driverManager.untileWindow(this.window, undefined, "suspended");
             this.ctrl.driverManager.rebuildLayout(this.window.output);
-            this.extensions.wasTiled = true;
         } else if (
             !isEnteringState &&
             this.extensions.wasTiled &&
@@ -261,9 +261,10 @@ export class WindowHooks {
             return;
         }
         if (this.window.minimized && this.extensions.isTiled) {
-            this.ctrl.driverManager.untileWindow(this.window);
+            // "suspended": the transition choke point marks wasTiled so
+            // un-minimizing restores the window to its tile
+            this.ctrl.driverManager.untileWindow(this.window, undefined, "suspended");
             this.ctrl.driverManager.rebuildLayout(this.window.output);
-            this.extensions.wasTiled = true;
         } else if (
             !this.window.minimized &&
             !this.extensions.isTiled &&

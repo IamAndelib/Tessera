@@ -1,6 +1,6 @@
-// driver.ts - Interface from drivers/engines to the controller
+// driver.ts - Interface from engines to the controller
 
-import { TilingDriver } from "./driver";
+import { TilingDriver, TilingCause } from "./driver";
 import { BTreeEngine, EngineConfig } from "../engine";
 import { Window, Tile, Output } from "kwin-api";
 import { QTimer } from "kwin-api/qt";
@@ -171,20 +171,9 @@ export class DriverManager {
         }
     }
 
-    private applyTiled(window: Window): void {
-        const extensions = this.ctrl.windowExtensions.get(window);
-        if (extensions != undefined) {
-            extensions.isTiled = true;
-        }
-    }
-
     private applyUntiled(window: Window): void {
-        const extensions = this.ctrl.windowExtensions.get(window);
-        if (extensions == undefined) {
-            return;
-        }
-        extensions.isTiled = false;
-        extensions.isSingleMaximized = false;
+        // lifecycle flags (isTiled/isSingleMaximized) are owned by the
+        // driver's state transition; this applies KWin-side properties only
         window.keepAbove = false;
         window.keepBelow = false;
     }
@@ -211,19 +200,13 @@ export class DriverManager {
                     this.logger.error("No driver for desktop", desktop.toString());
                     continue;
                 }
-                // move this above to correctly set isTiled
-                for (const window of driver.clients.keys()) {
-                    if (!driver.untiledWindows.has(window)) {
-                        this.applyTiled(window);
-                    }
-                }
                 driver.buildLayout(
                     this.ctrl.workspace.tilingForScreen(desktop.output).rootTile,
                 );
-                // make registered "untiled" clients appear untiled
-                for (const window of driver.untiledWindows) {
+                // make windows that just left the tiled layer appear untiled
+                for (const window of driver.takePendingUntile()) {
                     const extensions = this.ctrl.windowExtensions.get(window);
-                    if (extensions == undefined || !extensions.isTiled) {
+                    if (extensions == undefined) {
                         continue;
                     }
                     // sometimes effects on untiled windows dont properly apply
@@ -248,7 +231,11 @@ export class DriverManager {
         }
     }
 
-    untileWindow(window: Window, desktops?: Desktop[]): void {
+    untileWindow(
+        window: Window,
+        desktops?: Desktop[],
+        cause?: TilingCause,
+    ): void {
         if (desktops == undefined) {
             desktops =
                 this.ctrl.desktopFactory.createDesktopsFromWindow(window);
@@ -262,7 +249,7 @@ export class DriverManager {
         for (const desktop of desktops) {
             const driver = this.drivers.get(desktop.toString());
             if (driver) {
-                driver.untileWindow(window);
+                driver.untileWindow(window, cause);
             }
         }
     }

@@ -14,6 +14,35 @@ import { Log } from "../util/log";
 import { Config } from "../util/config";
 import type { Controller } from "../controller";
 
+// M1: authoritative per-window lifecycle state. The tiled layer and the
+// floating layer coexist (COSMIC-style duality); every window the driver
+// manages is in exactly one of these states and every change flows through
+// TilingDriver.transition().
+export const enum TilingState {
+    // not tiled and not a promotion candidate (dialogs, filtered apps,
+    // windows opened while tiling is off, suspended windows)
+    Floating = 0,
+    // registered in the engine and occupying a tile
+    Tiled = 1,
+    // floating because the cap was hit; holds a FIFO position and is a
+    // promotion candidate when a slot frees up
+    Overflowed = 2,
+}
+
+// why a transition happened; drives state-dependent side effects
+// (wasTiled restoration markers etc.)
+export type TilingCause =
+    // Tiled -> Floating: minimize/maximize/fullscreen entered, restorable
+    | "suspended"
+    // Tiled -> Floating: drag-out, desktop change, manual untile; not
+    // auto-restorable
+    | "released"
+    // Floating/Overflowed -> Tiled or Floating -> Overflowed: window became
+    // manageable / was dropped in
+    | "added"
+    // Floating -> Overflowed: the target half was full
+    | "capHit";
+
 export class TilingDriver {
     engine: BTreeEngine;
 
@@ -23,10 +52,114 @@ export class TilingDriver {
 
     tiles: BiMap<Kwin.Tile, Tile> = new BiMap();
     clients: BiMap<Kwin.Window, Client> = new BiMap();
-    // windows that have no associated tile but are still in an engine go here
-    untiledWindows: Set<Kwin.Window> = new Set();
-    // windows declined tiling because the cap was reached (FIFO for auto-promotion)
-    private overflowedWindows: Set<Kwin.Window> = new Set();
+    // authoritative lifecycle state per managed window (insertion order of
+    // Overflowed entries is the FIFO promotion order)
+    private windowStates: Map<Kwin.Window, TilingState> = new Map();
+    // windows that left the tiled layer and still need their KWin-side
+    // properties reapplied on the next rebuild (tile detach, stacking reset,
+    // maximize undo). A work queue, not lifecycle state.
+    private pendingUntile: Set<Kwin.Window> = new Set();
+
+    // the single state-transition choke point. Illegal edges are logged and
+    // ignored, never silently corrupt state.
+    private transition(
+        window: Kwin.Window,
+        to: TilingState,
+        cause: TilingCause = "added",
+    ): void {
+        const from = this.windowStates.get(window) ?? TilingState.Floating;
+        if (from === to) {
+            return;
+        }
+        const legal =
+            (from === TilingState.Floating &&
+                (to === TilingState.Tiled || to === TilingState.Overflowed)) ||
+            (from === TilingState.Tiled && to === TilingState.Floating) ||
+            (from === TilingState.Overflowed && to === TilingState.Tiled);
+        if (!legal) {
+            this.logger.error(
+                "Illegal state transition",
+                from,
+                "->",
+                to,
+                "for",
+                window.resourceClass,
+            );
+            return;
+        }
+        this.windowStates.set(window, to);
+        if (from === TilingState.Tiled && to === TilingState.Floating) {
+            this.pendingUntile.add(window);
+        }
+        const extensions = this.ctrl.windowExtensions.get(window);
+        if (extensions != undefined) {
+            // derived flags have exactly one writer: this transition
+            extensions.isTiled = to === TilingState.Tiled;
+            if (to === TilingState.Tiled) {
+                // back in a tile: the restore marker has served its purpose
+                extensions.wasTiled = false;
+            } else if (to === TilingState.Floating) {
+                extensions.isSingleMaximized = false;
+                if (cause === "suspended") {
+                    extensions.wasTiled = true;
+                }
+            }
+        }
+    }
+
+    // drop all lifecycle state for a window (it left the system entirely)
+    private forget(window: Kwin.Window): void {
+        this.windowStates.delete(window);
+        this.pendingUntile.delete(window);
+    }
+
+    // read-only state accessor (Tiled / Floating / Overflowed)
+    stateOf(window: Kwin.Window): TilingState {
+        return this.windowStates.get(window) ?? TilingState.Floating;
+    }
+
+    // windows that left the tiled layer since the last rebuild and still
+    // need their KWin-side "appear untiled" application. Draining the queue
+    // clears it.
+    takePendingUntile(): Kwin.Window[] {
+        const ret = Array.from(this.pendingUntile);
+        this.pendingUntile.clear();
+        return ret;
+    }
+
+    // windows currently occupying a tile
+    tiledWindows(): Kwin.Window[] {
+        const ret: Kwin.Window[] = [];
+        for (const [window, state] of this.windowStates) {
+            if (state === TilingState.Tiled) {
+                ret.push(window);
+            }
+        }
+        return ret;
+    }
+
+    // registered engine clients whose tiling is temporarily suspended
+    // (minimized / maximized / fullscreen / dragged out)
+    suspendedWindows(): Kwin.Window[] {
+        const ret: Kwin.Window[] = [];
+        for (const [window, state] of this.windowStates) {
+            if (state === TilingState.Floating && this.clients.has(window)) {
+                ret.push(window);
+            }
+        }
+        return ret;
+    }
+
+    // cap-hit floaters in FIFO promotion order
+    overflowedWindows(): Kwin.Window[] {
+        const ret: Kwin.Window[] = [];
+        for (const [window, state] of this.windowStates) {
+            if (state === TilingState.Overflowed) {
+                ret.push(window);
+            }
+        }
+        return ret;
+    }
 
     get engineConfig(): EngineConfig {
         return {
@@ -284,15 +417,15 @@ export class TilingDriver {
         }
     }
 
-    untileWindow(window: Kwin.Window): void {
-        if (this.untiledWindows.has(window)) {
+    untileWindow(window: Kwin.Window, cause: TilingCause = "released"): void {
+        if (this.stateOf(window) !== TilingState.Tiled) {
             return;
         }
         const client = this.clients.get(window);
         if (client == undefined) {
             return;
         }
-        this.untiledWindows.add(window);
+        this.transition(window, TilingState.Floating, cause);
         try {
             this.engine.removeClient(client);
             this.engine.buildLayout();
@@ -303,16 +436,23 @@ export class TilingDriver {
 
     removeWindow(window: Kwin.Window): boolean {
         // a capped-out floater may have closed without ever being registered
-        this.overflowedWindows.delete(window);
+        if (this.stateOf(window) === TilingState.Overflowed) {
+            this.forget(window);
+            return false;
+        }
         const client = this.clients.get(window);
         if (client == undefined) {
+            this.forget(window);
             return false;
         }
         this.clients.delete(window);
-        if (this.untiledWindows.has(window)) {
-            this.untiledWindows.delete(window);
+        // a suspended window (registered but not tiled) leaving is pure
+        // bookkeeping: it held no tile, so no slot frees up
+        if (this.stateOf(window) === TilingState.Floating) {
+            this.forget(window);
             return false;
         }
+        this.forget(window);
         try {
             this.engine.removeClient(client);
             this.engine.buildLayout();
@@ -322,14 +462,14 @@ export class TilingDriver {
         }
         // a tiled slot freed up: auto-promote the oldest capped-out floater if
         // the half it targets now has room
+        const overflowed = this.overflowedWindows();
         if (
             this.config.maxTiledWindowsPerHalf > 0 &&
-            this.overflowedWindows.size > 0 &&
+            overflowed.length > 0 &&
             this.targetHalfCount() < this.config.maxTiledWindowsPerHalf
         ) {
-            const oldest = this.overflowedWindows.values().next().value;
+            const oldest = overflowed[0];
             if (oldest != null) {
-                this.overflowedWindows.delete(oldest);
                 this.logger.debug(
                     "A half has a free slot, promoting",
                     oldest.resourceClass,
@@ -389,16 +529,13 @@ export class TilingDriver {
     }
 
     untileAll(): void {
-        const windows: Set<Kwin.Window> = new Set();
+        // visual teardown only: the engine and the state machine are kept
+        // intact so a later activate() can rebuild the layout
+        const windows = new Set<Kwin.Window>(this.windowStates.keys());
         for (const window of this.clients.keys()) {
             windows.add(window);
         }
-        for (const window of this.untiledWindows) {
-            windows.add(window);
-        }
-        for (const window of this.overflowedWindows) {
-            windows.add(window);
-        }
+        this.pendingUntile.clear();
         for (const window of windows) {
             this.restoreWindow(window);
         }
@@ -428,11 +565,10 @@ export class TilingDriver {
     }
 
     addWindow(window: Kwin.Window): void {
-        // Idempotency guard: if the window is already a registered client and
-        // is not marked untiled, it's already part of this driver's layout.
-        // Re-inserting corrupts the engine tree (the same client ends up in
-        // multiple tiles).
-        if (this.clients.has(window) && !this.untiledWindows.has(window)) {
+        // Idempotency guard: a window that already occupies a tile is part of
+        // this driver's layout. Re-inserting it would corrupt the engine tree
+        // (the same client ends up in multiple tiles).
+        if (this.stateOf(window) === TilingState.Tiled) {
             return;
         }
         // window cap: leave new windows floating once the target half is full.
@@ -441,7 +577,8 @@ export class TilingDriver {
             this.config.maxTiledWindowsPerHalf > 0 &&
             this.targetHalfCount() >= this.config.maxTiledWindowsPerHalf
         ) {
-            this.overflowedWindows.add(window);
+            // re-hitting the cap keeps the window's existing FIFO position
+            this.transition(window, TilingState.Overflowed, "capHit");
             // capped-out floaters must always sit over the tiled layer,
             // regardless of the tiled-window stacking config
             this.ctrl.windowExtensions.get(window)?.captureState();
@@ -455,7 +592,6 @@ export class TilingDriver {
             );
             return;
         }
-        this.overflowedWindows.delete(window);
         if (!this.clients.has(window)) {
             this.clients.set(window, new Client(window));
         }
@@ -463,7 +599,6 @@ export class TilingDriver {
         if (client == undefined) {
             return;
         }
-        this.untiledWindows.delete(window);
         // tries to use active insertion if it should, but can fail and fall back
         let activeTile: Tile | null = null;
         if (this.engine.config.insertionPoint == InsertionPoint.Active) {
@@ -480,6 +615,7 @@ export class TilingDriver {
                 this.engine.putClientInTile(client, activeTile);
             }
             this.engine.buildLayout();
+            this.transition(window, TilingState.Tiled, "added");
         } catch (e) {
             this.logger.error(e);
         }
@@ -523,7 +659,6 @@ export class TilingDriver {
         if (client == undefined) {
             return;
         }
-        this.untiledWindows.delete(window);
         try {
             let rotatedDirection = direction;
             if (
@@ -541,8 +676,8 @@ export class TilingDriver {
             }
             this.engine.putClientInTile(client, tile, rotatedDirection);
             this.engine.buildLayout();
-            // a capped-out floater that found a slot is no longer overflowing
-            this.overflowedWindows.delete(window);
+            // a floater (including a capped-out one) that found a slot is tiled
+            this.transition(window, TilingState.Tiled, "added");
         } catch (e) {
             this.logger.error(e);
         }

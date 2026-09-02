@@ -1,8 +1,11 @@
-// engine-harness.ts - Deterministic unit tests for the BTreeEngine.
-// Runs in plain node (no KWin): "kwin-api" and "kwin-api/qt" are aliased
-// at bundle time to test/stubs/*.mjs. Wired up via `make test`.
+// engine-harness.ts - Deterministic unit tests for the BTreeEngine and the
+// driver window state machine. Runs in plain node (no KWin): "kwin-api" and
+// "kwin-api/qt" are aliased at bundle time to test/stubs/*.mjs. Wired up via
+// `make test`.
 
 import { BTreeEngine, Client } from "../src/engine/index";
+import { TilingDriver, TilingState } from "../src/driver/driver";
+import { Log } from "../src/util/log";
 
 const H = 1;
 const V = 2;
@@ -327,6 +330,234 @@ function engine() {
             own(rt3.tiles[1]) === "B",
         own(rt3.tiles[0]) + "|" + own(rt3.tiles[1]),
     );
+}
+
+// --- M1: driver window state machine ---
+
+function mkWindow(name: string): any {
+    return {
+        resourceClass: name,
+        minSize: null,
+        tile: null,
+        keepAbove: false,
+        keepBelow: false,
+        fullScreen: false,
+        minimized: false,
+        frameGeometry: null,
+        setMaximize() {},
+    };
+}
+
+function mkExt(): any {
+    return {
+        isTiled: false,
+        wasTiled: false,
+        isSingleMaximized: false,
+        captureState() {},
+        priorKeepAbove: false,
+        priorKeepBelow: false,
+        priorFullScreen: false,
+        priorMaximizedFull: false,
+        priorMinimized: false,
+        priorFrameGeometry: null,
+    };
+}
+
+function mkDriver(cap: number): { driver: TilingDriver; extensions: Map<any, any> } {
+    const extensions: Map<any, any> = new Map();
+    const ctrl: any = {
+        logger: new Log({} as any),
+        config: {
+            maxTiledWindowsPerHalf: cap,
+            tiledWindowStacking: 0,
+            maximizeSingle: false,
+        },
+        windowExtensions: extensions,
+        workspaceExtensions: { lastActiveWindow: null },
+        workspace: { raiseWindow() {}, windows: [] },
+        managedTiles: new Set(),
+    };
+    const engine = new BTreeEngine({
+        insertionPoint: 1, // Right bias
+        rotateLayout: false,
+        preserveSplit: false,
+        forceSplit: 0,
+    });
+    return { driver: new TilingDriver(engine, ctrl), extensions };
+}
+
+// cap-hit, FIFO promotion, suspend/release cycles.
+// cap=3 with right-bias insertion: A anchors the left half; B,C,D pile up on
+// the right until it holds 3; E,F then overflow.
+{
+    const { driver, extensions } = mkDriver(3);
+    const A = mkWindow("A");
+    const B = mkWindow("B");
+    const C = mkWindow("C");
+    const D = mkWindow("D");
+    const E = mkWindow("E");
+    const F = mkWindow("F");
+    for (const w of [A, B, C, D, E, F]) {
+        extensions.set(w, mkExt());
+    }
+    driver.addWindow(A);
+    driver.addWindow(B);
+    driver.addWindow(C);
+    driver.addWindow(D);
+    check(
+        "A-D tile under the per-half cap",
+        [A, B, C, D].every(
+            (w) =>
+                driver.stateOf(w) === TilingState.Tiled &&
+                extensions.get(w).isTiled === true,
+        ),
+    );
+    driver.addWindow(E);
+    check(
+        "E overflows once the dwindle half is full",
+        driver.stateOf(E) === TilingState.Overflowed &&
+            extensions.get(E).isTiled === false,
+    );
+    check("capped-out floater sits above the tiled layer", E.keepAbove === true);
+    driver.addWindow(F);
+    check("F overflows too", driver.stateOf(F) === TilingState.Overflowed);
+
+    // closing tiled windows frees dwindle-half slots (the tree reflows on
+    // every removal); floaters must promote strictly in FIFO order
+    const tiledQueue = [A, B, C, D];
+    const promoted: any[] = [];
+    while (driver.overflowedWindows().length > 0) {
+        const next = tiledQueue.find(
+            (w) => driver.stateOf(w) === TilingState.Tiled,
+        );
+        const oldest = driver.overflowedWindows()[0];
+        const didPromote = driver.removeWindow(next);
+        if (didPromote) {
+            check(
+                "promotion fills the freed slot with the oldest floater",
+                driver.stateOf(oldest) === TilingState.Tiled &&
+                    extensions.get(oldest).isTiled === true,
+            );
+            promoted.push(oldest);
+        } else {
+            check(
+                "non-slot-freeing removal promotes nobody",
+                driver.stateOf(oldest) === TilingState.Overflowed,
+            );
+        }
+    }
+    check(
+        "both floaters promoted in FIFO order (E before F)",
+        promoted.length === 2 && promoted[0] === E && promoted[1] === F,
+    );
+
+    // re-hitting the cap requeues at the back of the FIFO
+    driver.addWindow(A);
+    check("A overflowed again", driver.stateOf(A) === TilingState.Overflowed);
+
+    // untileAll restores window properties but keeps lifecycle state intact
+    driver.untileAll();
+    check(
+        "untileAll keeps lifecycle state for a later rebuild",
+        driver.stateOf(A) === TilingState.Overflowed &&
+            driver.stateOf(C) === TilingState.Tiled,
+    );
+    check("untileAll resets floater keep-above", A.keepAbove === false);
+
+    // a floater closing frees nothing and promotes nobody
+    check(
+        "closing overflowed A reports no promotion",
+        driver.removeWindow(A) === false,
+    );
+    check(
+        "remaining tiled windows keep their tiles",
+        [C, D, E, F].every((w) => driver.stateOf(w) === TilingState.Tiled),
+    );
+}
+
+// suspend/release cycles, restore marker, idempotency and illegal edges.
+// cap=2: A anchors the left half, B,C fill the right half, D overflows.
+{
+    const { driver, extensions } = mkDriver(2);
+    const A = mkWindow("A");
+    const B = mkWindow("B");
+    const C = mkWindow("C");
+    const D = mkWindow("D");
+    for (const w of [A, B, C, D]) {
+        extensions.set(w, mkExt());
+    }
+    driver.addWindow(A);
+    driver.addWindow(B);
+    driver.addWindow(C);
+    driver.addWindow(D);
+    check(
+        "A-C tiled, D overflowed",
+        driver.stateOf(D) === TilingState.Overflowed &&
+            [A, B, C].every((w) => driver.stateOf(w) === TilingState.Tiled),
+    );
+
+    // suspension (min/max/fullscreen) marks the restore flag via the choke point
+    driver.untileWindow(B, "suspended");
+    check(
+        "B suspended: floating, wasTiled set",
+        driver.stateOf(B) === TilingState.Floating &&
+            extensions.get(B).isTiled === false &&
+            extensions.get(B).wasTiled === true,
+    );
+    check(
+        "B queued for untile application",
+        driver.takePendingUntile().includes(B),
+    );
+    check("pending untile queue drains", driver.takePendingUntile().length === 0);
+
+    // re-tiling a suspended window clears the restore flag
+    driver.addWindow(B);
+    check(
+        "B re-tiled, wasTiled cleared",
+        driver.stateOf(B) === TilingState.Tiled &&
+            extensions.get(B).wasTiled === false,
+    );
+
+    // idempotency and illegal-edge guards
+    driver.addWindow(B);
+    check(
+        "re-adding a tiled window is a no-op",
+        driver.stateOf(B) === TilingState.Tiled,
+    );
+    driver.untileWindow(D, "released");
+    check(
+        "untile of an overflowed window is ignored",
+        driver.stateOf(D) === TilingState.Overflowed,
+    );
+
+    // drag-out release does NOT set the restore flag
+    driver.untileWindow(C, "released");
+    check(
+        "C released to floating without wasTiled",
+        driver.stateOf(C) === TilingState.Floating &&
+            extensions.get(C).wasTiled === false,
+    );
+
+    // a floater closing frees nothing and promotes nobody
+    check(
+        "closing overflowed D reports no promotion",
+        driver.removeWindow(D) === false,
+    );
+    check(
+        "removing an unknown window is a safe no-op",
+        driver.removeWindow(mkWindow("Z")) === false,
+    );
+
+    // with no floaters waiting, closing a tiled window is pure bookkeeping
+    check(
+        "removing tiled B with no overflow reports no promotion",
+        driver.removeWindow(B) === false,
+    );
+    check("B state forgotten", driver.stateOf(B) === TilingState.Floating);
+
+    // a released window can be re-tiled explicitly
+    driver.addWindow(C);
+    check("C re-tiled after release", driver.stateOf(C) === TilingState.Tiled);
 }
 
 console.log(
