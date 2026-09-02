@@ -135,19 +135,61 @@ export class Controller {
     // fire and forget - this is the last thing the script does before KWin
     // tears it down.
     private notifyDisabled(): void {
+        this.notify(
+            "preferences-system-windows-effect-presentwindows",
+            "Tessera disabled",
+            "Tiling is off and all windows were restored.\n\nRe-enabling Tessera from System Settings mid-session may not take effect until you log out and back in (upstream KWin issue). Use the 'Tessera: Toggle Tiling' shortcut (Meta+Shift+E) for an instant switch.",
+            10000,
+        );
+    }
+
+    // fire-and-forget Plasma notification; never lets teardown take kwin down
+    private notify(
+        icon: string,
+        title: string,
+        body: string,
+        timeoutMs: number,
+    ): void {
         try {
             const notify = this.qmlObjects.notify.getNotify();
             notify.arguments = [
                 "tessera",
                 0,
-                "preferences-system-windows-effect-presentwindows",
-                "Tessera disabled",
-                "Tiling is off and all windows were restored.\n\nRe-enabling Tessera from System Settings mid-session may not take effect until you log out and back in (upstream KWin issue). Use the 'Tessera: Toggle Tiling' shortcut (Meta+Shift+E) for an instant switch.",
+                icon,
+                title,
+                body,
                 [],
                 {},
-                10000,
+                timeoutMs,
             ];
             notify.call();
+        } catch (e) {
+            this.logger.error(e);
+        }
+    }
+
+    // warn when Plasma's native Meta+T tiling has already carved a screen
+    // into custom tiles: both systems would fight over window placement
+    private warnNativeTiling(): void {
+        try {
+            for (const output of this.workspace.screens) {
+                if (
+                    this.workspace.tilingForScreen(output).rootTile.tiles
+                        .length > 0
+                ) {
+                    this.logger.info(
+                        "Native Plasma tiling tiles detected on",
+                        output.name,
+                    );
+                    this.notify(
+                        "view-grid",
+                        "Native Plasma tiling detected",
+                        "Custom Plasma tiles (Meta+T) exist on this screen. Disable native Plasma tiling so Tessera can manage the layout correctly.",
+                        10000,
+                    );
+                    return;
+                }
+            }
         } catch (e) {
             this.logger.error(e);
         }
@@ -189,7 +231,9 @@ export class Controller {
             this.initTimer.restart();
             return;
         }
-        // hook into kwin after everything loads nicely
+        // hook into kwin after everything loads nicely. detect foreign
+        // native tiles BEFORE our first buildLayout clears them
+        this.warnNativeTiling();
         this.workspaceActions.addHooks();
         this.driverManager.init();
         // i3-style: manage the windows already open when the script starts,
