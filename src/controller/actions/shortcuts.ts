@@ -1,7 +1,7 @@
 // actions/shortcuts.ts - Shortcuts invoked directly by the user
 
 import type { Controller } from "../index";
-import { Tile, Window } from "kwin-api";
+import { Tile, Window, Output } from "kwin-api";
 import type { ShortcutHandler } from "kwin-api/qml";
 import { GPoint, Direction as GDirection } from "../../util/geometry";
 import { QPoint } from "kwin-api/qt";
@@ -109,11 +109,6 @@ export class ShortcutManager {
 
             // Hyprland-style shortcuts
             { get: shortcuts.getSwapHalves, fn: this.swapHalves.bind(this) },
-            { get: shortcuts.getSwapWithSibling, fn: this.swapWithSibling.bind(this) },
-            { get: shortcuts.getSwapAbove, fn: this.swapInDirection.bind(this, Direction.Above) },
-            { get: shortcuts.getSwapBelow, fn: this.swapInDirection.bind(this, Direction.Below) },
-            { get: shortcuts.getSwapLeft, fn: this.swapInDirection.bind(this, Direction.Left) },
-            { get: shortcuts.getSwapRight, fn: this.swapInDirection.bind(this, Direction.Right) },
             { get: shortcuts.getToggleSplit, fn: this.toggleSplit.bind(this) },
             { get: shortcuts.getCycleNext, fn: this.cycleNext.bind(this, false) },
             { get: shortcuts.getCyclePrev, fn: this.cycleNext.bind(this, true) },
@@ -157,10 +152,13 @@ export class ShortcutManager {
         }
         if (ext.isTiled) {
             this.ctrl.driverManager.untileWindow(window);
+            this.ctrl.driverManager.rebuildLayout();
+            this.ctrl.showOsd("view-restore", "Window floated");
         } else {
             this.ctrl.driverManager.addWindow(window);
+            this.ctrl.driverManager.rebuildLayout();
+            this.ctrl.showOsd("view-grid", "Window tiled");
         }
-        this.ctrl.driverManager.rebuildLayout();
     }
 
     tileInDirection(window: Window, point: QPoint | null): Tile | null {
@@ -172,6 +170,99 @@ export class ShortcutManager {
             .bestTileForPosition(point.x, point.y);
     }
 
+    // the output whose screen center lies in the pressed direction from the
+    // origin screen (nearest first). COSMIC-style: displays count as
+    // continuations of the layout in every direction.
+    private neighborOutput(origin: Output, direction: Direction): Output | null {
+        const originGeometry = origin.geometry;
+        const originX = originGeometry.x + originGeometry.width / 2;
+        const originY = originGeometry.y + originGeometry.height / 2;
+        let best: Output | null = null;
+        let bestDistance = Infinity;
+        for (const screen of this.ctrl.workspace.screens) {
+            if (screen == origin) {
+                continue;
+            }
+            const geometry = screen.geometry;
+            const centerX = geometry.x + geometry.width / 2;
+            const centerY = geometry.y + geometry.height / 2;
+            const inDirection =
+                (direction === Direction.Right && centerX > originX) ||
+                (direction === Direction.Left && centerX < originX) ||
+                (direction === Direction.Above && centerY < originY) ||
+                (direction === Direction.Below && centerY > originY);
+            if (!inDirection) {
+                continue;
+            }
+            const distance =
+                (centerX - originX) * (centerX - originX) +
+                (centerY - originY) * (centerY - originY);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = screen;
+            }
+        }
+        return best;
+    }
+
+    // the tile on a neighbor output that sits at the shared edge, i.e. the
+    // first window reached when moving `direction` across screens
+    private edgeTile(
+        neighbor: Output,
+        from: Output,
+        direction: Direction,
+    ): Tile | null {
+        const target = neighbor.geometry;
+        const origin = from.geometry;
+        const clamp = (v: number, min: number, max: number) =>
+            Math.min(Math.max(v, min), max);
+        const probe =
+            direction === Direction.Right
+                ? {
+                      x: target.x + 1,
+                      y: clamp(
+                          origin.y + origin.height / 2,
+                          target.y + 1,
+                          target.y + target.height - 2,
+                      ),
+                  }
+                : direction === Direction.Left
+                  ? {
+                        x: target.x + target.width - 2,
+                        y: clamp(
+                            origin.y + origin.height / 2,
+                            target.y + 1,
+                            target.y + target.height - 2,
+                        ),
+                    }
+                  : direction === Direction.Below
+                    ? {
+                          y: target.y + 1,
+                          x: clamp(
+                              origin.x + origin.width / 2,
+                              target.x + 1,
+                              target.x + target.width - 2,
+                          ),
+                      }
+                    : {
+                          y: target.y + target.height - 2,
+                          x: clamp(
+                              origin.x + origin.width / 2,
+                              target.x + 1,
+                              target.x + target.width - 2,
+                          ),
+                      };
+        const tiling = this.ctrl.workspace.tilingForScreen(neighbor);
+        let tile = tiling.bestTileForPosition(probe.x, probe.y);
+        if (tile == null) {
+            tile = tiling.rootTile;
+            while (tile.tiles.length == 1) {
+                tile = tile.tiles[0];
+            }
+        }
+        return tile;
+    }
+
     focus(direction: Direction): void {
         const window = this.ctrl.workspace.activeWindow;
         if (window == null) {
@@ -181,6 +272,14 @@ export class ShortcutManager {
             window,
             pointInDirection(window, direction),
         );
+        if (tile == null) {
+            // nothing on this output in that direction: migrate focus to
+            // the neighboring screen (COSMIC/Hyprland behavior)
+            const neighbor = this.neighborOutput(window.output, direction);
+            if (neighbor != null) {
+                tile = this.edgeTile(neighbor, window.output, direction);
+            }
+        }
         if (tile == null) {
             tile = this.ctrl.workspace.tilingForScreen(window.output).rootTile;
             while (tile.tiles.length == 1) {
@@ -205,6 +304,16 @@ export class ShortcutManager {
         // window. Removing it only redistributes sibling sizes, so the picked
         // tile stays valid and the intermediate rebuild is unnecessary.
         let tile = this.tileInDirection(window, point);
+        let targetOutput: Output = window.output;
+        if (tile == null) {
+            // screen edge reached: move the window to the neighboring
+            // screen's layout (COSMIC/Hyprland behavior)
+            const neighbor = this.neighborOutput(window.output, direction);
+            if (neighbor != null) {
+                targetOutput = neighbor;
+                tile = this.edgeTile(neighbor, window.output, direction);
+            }
+        }
         if (tile == null) {
             // usually this works
             tile = this.ctrl.workspace.tilingForScreen(window.output).rootTile;
@@ -212,14 +321,24 @@ export class ShortcutManager {
                 tile = tile.tiles[0];
             }
         }
-        this.logger.debug("Moving", window.resourceClass);
+        this.logger.debug(
+            "Moving",
+            window.resourceClass,
+            "to output",
+            targetOutput.name,
+        );
         this.ctrl.driverManager.untileWindow(window);
         this.ctrl.driverManager.putWindowInTile(
             window,
             tile,
             gdirectionFromDirection(direction),
+            targetOutput,
         );
-        this.ctrl.driverManager.rebuildLayout(window.output);
+        this.ctrl.driverManager.rebuildLayout(targetOutput);
+        // close up the vacated slot on the source output
+        if (targetOutput !== window.output) {
+            this.ctrl.driverManager.rebuildLayout(window.output);
+        }
     }
 
     resize(direction: Direction): void {
@@ -257,42 +376,6 @@ export class ShortcutManager {
             this.ctrl.driverManager.rebuildLayout(window.output);
         } else {
             this.logger.debug("Cannot swap: less than 2 windows tiled");
-        }
-    }
-
-    // Hyprland-style: swap focused window with its sibling
-    swapWithSibling(): void {
-        const ctx = this.getActiveDriverAndClient();
-        if (!ctx) return;
-        const { window, driver, client } = ctx;
-
-        const sibling = driver.engine.getSiblingClient(client);
-        if (sibling) {
-            driver.engine.swapClients(client, sibling);
-            this.ctrl.driverManager.rebuildLayout(window.output);
-            this.logger.debug("Swapped window with sibling");
-        }
-    }
-
-    // Hyprland-style: swap with window in a direction
-    swapInDirection(direction: Direction): void {
-        const ctx = this.getActiveDriverAndClient();
-        if (!ctx) return;
-        const { window, driver, client: client1 } = ctx;
-
-        const point = pointInDirection(window, direction);
-        const targetTile = this.tileInDirection(window, point);
-        if (!targetTile || targetTile.windows.length === 0) return;
-
-        const targetWindow = targetTile.windows[0];
-        if (targetWindow === window) return;
-
-        const client2 = driver.clients.get(targetWindow);
-        if (!client2) return;
-
-        if (driver.engine.swapClients(client1, client2)) {
-            this.ctrl.driverManager.rebuildLayout(window.output);
-            this.logger.debug("Swapped windows in direction", direction);
         }
     }
 

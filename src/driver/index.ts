@@ -286,8 +286,17 @@ export class DriverManager {
         }
     }
 
-    putWindowInTile(window: Window, tile: Tile, direction?: Direction) {
-        const desktop = this.ctrl.desktopFactory.createDefaultDesktop(window.output);
+    putWindowInTile(
+        window: Window,
+        tile: Tile,
+        direction?: Direction,
+        output?: Output,
+    ) {
+        // cross-output moves route by the TARGET tile's output; the window
+        // itself still reports its old output until KWin migrates it
+        const desktop = this.ctrl.desktopFactory.createDefaultDesktop(
+            output ?? window.output,
+        );
         this.logger.debug(
             "Putting client",
             window.resourceClass,

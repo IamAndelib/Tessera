@@ -183,61 +183,6 @@ Item {
         sequence: "Meta+Shift+S";
     }
 
-    function getSwapWithSibling() {
-        return swapWithSibling;
-    }
-    ShortcutHandler {
-        id: swapWithSibling;
-
-        name: "TesseraSwapWithSibling";
-        text: "Tessera: Swap with Sibling";
-        sequence: "Meta+S";
-    }
-
-    function getSwapAbove() {
-        return swapAbove;
-    }
-    ShortcutHandler {
-        id: swapAbove;
-
-        name: "TesseraSwapAbove";
-        text: "Tessera: Swap Up";
-        sequence: "Meta+Alt+K";
-    }
-
-    function getSwapBelow() {
-        return swapBelow;
-    }
-    ShortcutHandler {
-        id: swapBelow;
-
-        name: "TesseraSwapBelow";
-        text: "Tessera: Swap Down";
-        sequence: "Meta+Alt+J";
-    }
-
-    function getSwapLeft() {
-        return swapLeft;
-    }
-    ShortcutHandler {
-        id: swapLeft;
-
-        name: "TesseraSwapLeft";
-        text: "Tessera: Swap Left";
-        sequence: "Meta+Alt+H";
-    }
-
-    function getSwapRight() {
-        return swapRight;
-    }
-    ShortcutHandler {
-        id: swapRight;
-
-        name: "TesseraSwapRight";
-        text: "Tessera: Swap Right";
-        sequence: "Meta+Alt+L";
-    }
-
     function getToggleSplit() {
         return toggleSplit;
     }

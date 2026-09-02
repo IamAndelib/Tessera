@@ -468,28 +468,6 @@ export class BTreeEngine {
         return true;
     }
 
-    // Hyprland-style: swap a client with another in the tree
-    swapClients(client1: Client, client2: Client): boolean {
-        const node1 = findNode(this.rootNode, (n) => n.client === client1);
-        const node2 = findNode(this.rootNode, (n) => n.client === client2);
-        if (!node1 || !node2) return false;
-
-        // Swap the clients
-        const temp = node1.client;
-        node1.client = node2.client;
-        node2.client = temp;
-        return true;
-    }
-
-    // Get the sibling client of a given client (for swap with sibling)
-    getSiblingClient(client: Client): Client | null {
-        const node = findNode(
-            this.rootNode,
-            (n) => n.client === client && n.sibling?.client != null,
-        );
-        return node?.sibling?.client ?? null;
-    }
-
     // Hyprland-style: toggle split direction at the parent of a client.
     // The affected node is pinned so its direction survives rebuilds even
     // without preserveSplit (like Hyprland's togglesplit).

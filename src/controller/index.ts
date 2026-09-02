@@ -154,8 +154,8 @@ export class Controller {
     }
 
     // transient Plasma pill rendered by plasmashell (org.kde.osdService); gives
-    // the toggle shortcut immediate visible feedback
-    private showOsd(icon: string, text: string): void {
+    // tiling/floating switches immediate visible feedback (COSMIC-style)
+    showOsd(icon: string, text: string): void {
         try {
             const osd = this.qmlObjects.notify.getOsd();
             osd.arguments = [icon, text];
