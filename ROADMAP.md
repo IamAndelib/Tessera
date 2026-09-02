@@ -281,6 +281,21 @@ comparison). Both are proven mechanisms, both map cleanly onto our engine.
 - **B4 Docs**: per-app exceptions section (Tessera filters + KWin window
   rules interplay).
 
+## Stage 1 Hotfix — KWin 6.4+ tiling crash (ACTIVE)
+
+Phase B exposed a latent M2 bug against the Plasma 6.4+ tiling rewrite:
+KWin's `CustomTile::split()` now creates **two children or a new sibling**
+depending on the parent's state, so same-direction parent/child splits
+(which Hyprland-faithful aspect decisions produce) corrupted the native tile
+tree → relayout storm → KWin SIGSEGV. Fix and full evidence:
+**`docs/STAGE1-HOTFIX.md`** (self-contained handoff; implement from there).
+
+- Stage 1 (this hotfix): perpendicular engine constraint + Polonium 1.2.x's
+  proven build algorithm (direction-change clearing, incremental child
+  matching, `manage()`/`unmanage()`).
+- Stage 2 (deferred, design in the same doc): N-ary flattening for
+  Hyprland-exact same-direction nesting — only after Stage 1 soaks.
+
 ## Testing & Release Strategy
 
 - Every milestone keeps `make test` green before commit; one commit per
