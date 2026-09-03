@@ -206,7 +206,15 @@ export class DriverManager {
                     }
                     const wasSingleMaximized = extensions.isSingleMaximized;
                     this.applyUntiled(window);
-                    window.tile = null;
+                    try {
+                        if (window.tile != null && driver.tiles.has(window.tile)) {
+                            window.tile.unmanage(window);
+                        } else if (window.tile != null) {
+                            window.tile = null;
+                        }
+                    } catch (e) {
+                        this.logger.error(e);
+                    }
                     if (wasSingleMaximized) {
                         window.setMaximize(false, false);
                     }

@@ -1,7 +1,7 @@
 // driver/driver.ts - Mapping from engines to Kwin API
 
 import { BTreeEngine, Preselect, Tile, Client, EngineConfig } from "../engine";
-import { Direction, GSize, GPoint, DirectionTools } from "../util/geometry";
+import { Direction, GSize, GPoint, GRect, DirectionTools } from "../util/geometry";
 import {
     InsertionPoint,
     TiledWindowStacking,
@@ -235,14 +235,36 @@ export class TilingDriver {
         // remember the root tile: it is the source of the tileable area
         // geometry for aspect-based splits on later engine rebuilds
         this.rootKwinTile = rootTile;
+
+        // ghost purge: drop clients KWin no longer tracks (missed removal
+        // events). The check reads the workspace list and never touches a
+        // (possibly dead) window wrapper — probing dead objects is what
+        // SIGSEGV'd kwin on unload.
+        const live = this.ctrl.workspace.windows;
+        for (const window of Array.from(this.clients.keys())) {
+            if (!live.includes(window)) {
+                const client = this.clients.get(window);
+                this.clients.delete(window);
+                this.forget(window);
+                if (client != undefined) {
+                    try {
+                        this.engine.removeClient(client);
+                    } catch (e) {
+                        this.logger.error(e);
+                    }
+                }
+                this.logger.debug("Purged ghost window from layout");
+            }
+        }
+
         // rebuild the engine with real geometry so the tree we apply carries
         // aspect-aware split directions (also covers fresh drivers whose
-        // first tiling happens before this method ever ran)
+        // first tiling happens before this method ever ran). The ENGINE tree
+        // is rebuilt from scratch each pass; the KWIN tree is updated
+        // INCREMENTALLY against it (Polonium's Plasma 6.4+ adaptation —
+        // see docs/STAGE1-HOTFIX.md §4).
         this.rebuildEngine();
-        // clear root tile
-        while (rootTile.tiles.length > 0) {
-            rootTile.tiles[0].remove();
-        }
+
         this.tiles.clear();
 
         // for maximizing single, sometimes engines can create overlapping root tiles so find the real root
@@ -253,7 +275,6 @@ export class TilingDriver {
         ) {
             realRootTile = realRootTile.tiles[0];
         }
-        this.tiles.set(rootTile, realRootTile);
         // if a root tile client exists, just maximize it. there shouldnt be one if roottile has children
         if (realRootTile.clients.length != 0 && this.config.maximizeSingle) {
             for (let i = realRootTile.clients.length - 1; i >= 0; i -= 1) {
@@ -280,59 +301,45 @@ export class TilingDriver {
             }
             return;
         }
-        const queue: Queue<Tile> = new Queue();
-        queue.enqueue(realRootTile);
+
+        // windows the rebuilt layout keeps tiled; everything else this
+        // driver manages is unmanaged after the walk
+        const tiledWindows: Set<Kwin.Window> = new Set();
+
+        const queue: Queue<[Kwin.Tile, Tile]> = new Queue();
+        queue.enqueue([rootTile, this.engine.rootTile]);
         while (queue.size > 0) {
-            const tile = queue.dequeue()!;
-            const kwinTile = this.tiles.inverse.get(tile);
-            if (kwinTile == undefined) {
-                this.logger.error("Tile not registered in buildLayout");
-                continue;
-            }
+            const [kwinTile, tile] = queue.dequeue()!;
+            this.tiles.set(kwinTile, tile);
             this.ctrl.managedTiles.add(kwinTile);
-            kwinTile.layoutDirection = tile.layoutDirection;
-            // LayoutDirection: 1=Horizontal, 2=Vertical (per kwin-api)
-            const horizontal =
-                kwinTile.layoutDirection == Kwin.LayoutDirection.Horizontal;
-            const tilesLen = tile.tiles.length;
-            // fix sizing issues (ex. size > 1) prematurely
-            tile.fixRelativeSizing();
-            if (tilesLen > 1) {
-                for (let i = 0; i < tilesLen; i += 1) {
-                    // tiling has weird splitting mechanics, so hopefully this code can help with that
-                    if (i == 0) {
-                        kwinTile.split(tile.layoutDirection);
-                    } else if (i > 1) {
-                        kwinTile.tiles[i - 1].split(tile.layoutDirection);
-                    }
-                    // custom resizing much easier now (?)
-                    const childKwinTile = kwinTile.tiles[i];
-                    const childTile = tile.tiles[i];
-                    this.tiles.set(childKwinTile, childTile);
-                    // size based on relative size plus autosizing
-                    // Must read-modify-write: in Qt's JS engine, relativeGeometry
-                    // returns a copy of the QRectF, so direct sub-property assignment
-                    // (e.g. tile.relativeGeometry.width = X) silently mutates the copy.
-                    if (horizontal && i > 0) {
-                        const geom = kwinTile.tiles[i - 1].relativeGeometry;
-                        geom.width =
-                            kwinTile.relativeGeometry.width *
-                            tile.tiles[i - 1].relativeSize;
-                        kwinTile.tiles[i - 1].relativeGeometry = geom;
-                    } else if (i > 0) {
-                        const geom = kwinTile.tiles[i - 1].relativeGeometry;
-                        geom.height =
-                            kwinTile.relativeGeometry.height *
-                            tile.tiles[i - 1].relativeSize;
-                        kwinTile.tiles[i - 1].relativeGeometry = geom;
-                    }
-                    queue.enqueue(childTile);
+
+            // DIRECTION-CHANGE GUARD (Polonium): changing a tile's direction
+            // while it still has children corrupts kwin's tiling — clear the
+            // children first; they are recreated by matchChildren below.
+            if (
+                kwinTile.layoutDirection !== tile.layoutDirection &&
+                kwinTile.tiles.length > 0
+            ) {
+                while (kwinTile.tiles.length > 0) {
+                    kwinTile.tiles[kwinTile.tiles.length - 1].remove();
                 }
             }
-            // if there is one child tile, replace this tile with the child tile
-            else if (tilesLen == 1) {
-                this.tiles.set(kwinTile, tile.tiles[0]);
-                queue.enqueue(tile.tiles[0]);
+            kwinTile.layoutDirection = tile.layoutDirection;
+            // fix sizing issues (ex. size > 1) prematurely
+            tile.fixRelativeSizing();
+
+            const tilesLen = tile.tiles.length;
+            if (tilesLen == 1) {
+                // chain collapse: this kwin tile takes over the child's region
+                while (kwinTile.tiles.length > 0) {
+                    kwinTile.tiles[kwinTile.tiles.length - 1].remove();
+                }
+                queue.enqueue([kwinTile, tile.tiles[0]]);
+            } else {
+                this.matchChildren(kwinTile, tile);
+                for (let i = 0; i < tilesLen; i += 1) {
+                    queue.enqueue([kwinTile.tiles[i], tile.tiles[i]]);
+                }
             }
 
             // Iterating over clients backwards to ensure stacking order
@@ -341,7 +348,7 @@ export class TilingDriver {
                 const window = this.clients.inverse.get(client);
                 if (window == undefined) {
                     this.logger.error("Client", client.name, "does not exist");
-                    return;
+                    continue;
                 }
                 const extensions = this.ctrl.windowExtensions.get(window);
                 if (extensions == undefined) {
@@ -351,17 +358,20 @@ export class TilingDriver {
                     );
                     continue;
                 }
-                // set some properties before setting tile to make sure client shows up
+                // set some properties before managing to make sure client shows up
                 extensions.captureState();
                 window.minimized = false;
                 window.fullScreen = false;
                 window.setMaximize(false, false);
                 extensions.isSingleMaximized = false;
-                // Clear tile first to force change detection for effects like KDE-Rounded-Corners
+                // attach via KWin's own tile membership API (Plasma 6.4+ safe)
                 if (window.tile !== kwinTile) {
-                    window.tile = null;
+                    try {
+                        kwinTile.manage(window);
+                    } catch (e) {
+                        this.logger.error(e);
+                    }
                 }
-                window.tile = kwinTile;
                 window.keepAbove =
                     this.config.tiledWindowStacking ===
                     TiledWindowStacking.KeepAbove;
@@ -371,12 +381,111 @@ export class TilingDriver {
                 extensions.lastTiledLocation = GPoint.centerOfRect(
                     kwinTile.absoluteGeometry,
                 );
+                tiledWindows.add(window);
                 // windows raised in inverse order (first window in array goes on top eventually)
                 this.ctrl.workspace.raiseWindow(window);
             }
 
             this.fixSizing(tile, kwinTile);
         }
+
+        // detach clients this layout no longer tiles (suspended windows,
+        // cap casualties). Only unmanage tiles that belong to this driver —
+        // foreign tiles are none of our business.
+        for (const window of this.clients.keys()) {
+            if (tiledWindows.has(window)) {
+                continue;
+            }
+            try {
+                if (window.tile != null && this.tiles.has(window.tile)) {
+                    window.tile.unmanage(window);
+                }
+            } catch (e) {
+                this.logger.error(e);
+            }
+        }
+    }
+
+    // adapt the kwin tile's children to the (binary) engine tile's children,
+    // Polonium buildlayout.ts style: remove surplus from the end, pre-shrink
+    // keepers to just above kwin's minimum, grow by splitting the LAST child
+    // (deterministic sibling path on KWin 6.4+ because the parent direction
+    // was just synced), then apply exact sizes in reverse order.
+    private matchChildren(kwinTile: Kwin.Tile, tile: Tile): void {
+        while (kwinTile.tiles.length > tile.tiles.length) {
+            kwinTile.tiles[kwinTile.tiles.length - 1].remove();
+        }
+        if (tile.tiles.length === 0) {
+            return;
+        }
+        for (let i = 0; i < kwinTile.tiles.length - 1; i += 1) {
+            this.setChildMinSize(kwinTile, i);
+        }
+        while (kwinTile.tiles.length < tile.tiles.length) {
+            if (kwinTile.tiles.length === 0) {
+                kwinTile.split(tile.layoutDirection);
+            } else {
+                kwinTile.tiles[kwinTile.tiles.length - 1].split(
+                    tile.layoutDirection,
+                );
+            }
+        }
+        for (let i = kwinTile.tiles.length - 1; i >= 0; i -= 1) {
+            this.tiles.set(kwinTile.tiles[i], tile.tiles[i]);
+            this.setChildRelativeSize(kwinTile, tile, i);
+        }
+    }
+
+    // shrink one keeper child to just above kwin's hard minimum relative
+    // size (0.15) so subsequent splits have room; exact sizes come later
+    private setChildMinSize(kwinTile: Kwin.Tile, index: number): void {
+        const minSize = 0.15001;
+        const kwinChild = kwinTile.tiles[index];
+        if (kwinChild == undefined) {
+            return;
+        }
+        // Must read-modify-write: in Qt's JS engine, relativeGeometry
+        // returns a copy of the QRectF, so direct sub-property assignment
+        // silently mutates the copy.
+        const geom = new GRect(kwinTile.relativeGeometry);
+        if (kwinTile.layoutDirection === Kwin.LayoutDirection.Horizontal) {
+            geom.width *= minSize;
+            geom.x += geom.width * index;
+        } else if (kwinTile.layoutDirection === Kwin.LayoutDirection.Vertical) {
+            geom.height *= minSize;
+            geom.y += geom.height * index;
+        }
+        kwinChild.relativeGeometry = geom;
+    }
+
+    // apply the engine child's exact relative geometry (reverse-order caller)
+    private setChildRelativeSize(
+        kwinTile: Kwin.Tile,
+        tile: Tile,
+        index: number,
+    ): void {
+        const kwinChild = kwinTile.tiles[index];
+        const engineChild = tile.tiles[index];
+        if (kwinChild == undefined || engineChild == undefined) {
+            return;
+        }
+        const geom = new GRect(kwinTile.relativeGeometry);
+        if (tile.layoutDirection === Kwin.LayoutDirection.Horizontal) {
+            geom.width *= engineChild.relativeSize;
+            let previous = 0;
+            for (let i = 0; i < index; i += 1) {
+                previous += tile.tiles[i].relativeSize;
+            }
+            geom.x += previous * kwinTile.relativeGeometry.width;
+        } else {
+            geom.height *= engineChild.relativeSize;
+            let previous = 0;
+            for (let i = 0; i < index; i += 1) {
+                previous += tile.tiles[i].relativeSize;
+            }
+            geom.y += previous * kwinTile.relativeGeometry.height;
+        }
+        kwinChild.relativeGeometry = geom;
     }
 
     fixSizing(tile: Tile, kwinTile: Kwin.Tile): void {
