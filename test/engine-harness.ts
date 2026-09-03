@@ -407,26 +407,39 @@ function aspectEngine(rotate: boolean) {
     );
 }
 
-// split direction follows the REAL geometry of each node: a wide remainder
-// splits horizontally where depth-parity would have gone vertical
+// split direction follows real geometry but is constrained by KWin 6.4+
+// (CustomTile::split makes a sibling, not children, when the parent group
+// cuts the same way): a same-direction aspect decision flips perpendicular
 {
     const e = aspectEngine(false);
     e.addClient(mk("A"));
     e.buildLayout({ width: 1600, height: 900 });
     e.addClient(mk("B"));
     e.buildLayout({ width: 1600, height: 900 });
-    // shrink A to a quarter: its sibling remainder becomes 1200x900 (wide)
+    // shrink A to a quarter: its sibling remainder (1200x900) is wide and
+    // the aspect rule picks Horizontal — same as the parent, so it flips
     e.rootTile.tiles[0].relativeSize = 0.25;
     e.regenerateLayout();
     e.addClient(mk("C"));
     e.buildLayout({ width: 1600, height: 900 });
     const right = e.rootTile.tiles[1];
     check(
-        "wide remainder splits Horizontal (parity would say Vertical)",
-        right.layoutDirection === H &&
+        "same-direction aspect flips to perpendicular (KWin constraint)",
+        right.layoutDirection === V &&
             own(right.tiles[0]) === "B" &&
             own(right.tiles[1]) === "C",
         "dir=" + right.layoutDirection + " " + own(right.tiles[0]) + "|" + own(right.tiles[1]),
+    );
+    // the flip must be stable across rebuilds (no tree corruption)
+    e.buildLayout({ width: 1600, height: 900 });
+    e.buildLayout({ width: 1600, height: 900 });
+    const right2 = e.rootTile.tiles[1];
+    check(
+        "flipped direction stable across rebuilds",
+        right2.layoutDirection === V &&
+            own(right2.tiles[0]) === "B" &&
+            own(right2.tiles[1]) === "C",
+        "dir=" + right2.layoutDirection + " " + own(right2.tiles[0]) + "|" + own(right2.tiles[1]),
     );
 }
 
@@ -782,7 +795,9 @@ function persistentEngine() {
     );
 }
 
-// persistent mode: preselect applies to every new split and beats aspect
+// persistent mode: preselect applies to every new split; a direction that
+// collides with the parent's is flipped perpendicular, side hint survives
+// as second-child placement
 {
     const e = persistentEngine();
     e.addClient(mk("A"));
@@ -791,17 +806,17 @@ function persistentEngine() {
     e.addClient(mk("B"));
     e.buildLayout({ width: 1600, height: 900 });
     check(
-        "persistent preselect Right: B right",
+        "persistent preselect Right: B right of root split",
         own(e.rootTile.tiles[1]) === "B",
         own(e.rootTile.tiles[0]) + "|" + own(e.rootTile.tiles[1]),
     );
     e.addClient(mk("C"));
     e.buildLayout({ width: 1600, height: 900 });
     check(
-        "persistent preselect beats aspect on later splits",
+        "persistent preselect flipped perpendicular under same-direction parent",
         own(e.rootTile.tiles[1].tiles[0]) === "B" &&
             own(e.rootTile.tiles[1].tiles[1]) === "C" &&
-            e.rootTile.tiles[1].layoutDirection === H,
+            e.rootTile.tiles[1].layoutDirection === V,
         own(e.rootTile.tiles[1].tiles[0]) +
             "," +
             own(e.rootTile.tiles[1].tiles[1]) +

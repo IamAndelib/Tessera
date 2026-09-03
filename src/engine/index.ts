@@ -304,23 +304,26 @@ export class BTreeEngine {
         const rootWidth = rootGeometry?.width ?? 0;
         const rootHeight = rootGeometry?.height ?? 0;
 
-        // Track depth for dwindle alternating splits
+        // Track depth for dwindle alternating splits, and each node's parent
+        // split direction for the perpendicularity constraint
         const queue: Queue<{
             node: TreeNode;
             depth: number;
             width: number;
             height: number;
+            parentDir: number | null;
         }> = new Queue();
         queue.enqueue({
             node: this.rootNode,
             depth: 0,
             width: rootWidth,
             height: rootHeight,
+            parentDir: null,
         });
         this.nodeMap.set(this.rootNode, this.rootTile);
 
         while (queue.size > 0) {
-            const { node, depth, width, height } = queue.dequeue()!;
+            const { node, depth, width, height, parentDir } = queue.dequeue()!;
             const tile = this.nodeMap.get(node);
             if (tile == undefined) {
                 continue;
@@ -377,6 +380,18 @@ export class BTreeEngine {
                 }
 
                 // Store direction for preserve_split / pinned features
+                // KWin 6.4+ constraint (CustomTile::split creates a SIBLING
+                // when the parent group already cuts the same way): a nested
+                // split may never equal its parent's direction, so a colliding
+                // decision is flipped to perpendicular. The root split is
+                // unconstrained. Side hints (preselect) survive as
+                // first/second-child placement under the flipped axis.
+                if (parentDir != null && splitDir === parentDir) {
+                    splitDir =
+                        splitDir === LayoutDirection.Horizontal
+                            ? LayoutDirection.Vertical
+                            : LayoutDirection.Horizontal;
+                }
                 node.splitDirection = splitDir;
 
                 // Set the tile's layout direction before splitting
@@ -399,12 +414,14 @@ export class BTreeEngine {
                     depth: depth + 1,
                     width: horizontal ? width * ratio : width,
                     height: horizontal ? height : height * ratio,
+                    parentDir: splitDir,
                 });
                 queue.enqueue({
                     node: node.children[1],
                     depth: depth + 1,
                     width: horizontal ? width * (1 - ratio) : width,
                     height: horizontal ? height : height * (1 - ratio),
+                    parentDir: splitDir,
                 });
             }
         }
