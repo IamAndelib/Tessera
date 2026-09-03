@@ -109,6 +109,9 @@ or manually: `kpackagetool6 -t KWin/Script -r tessera`
 
 ## Compatibility
 
+Tessera is adapted to the **Plasma 6.4+ tiling rewrite** (tested on 6.7) and
+coexists safely with KWin's own quick tiling.
+
 ### Conflicting Scripts
 
 **Disable any "Remember Window Position" scripts.** These scripts save and restore window geometry on launch, which directly conflicts with Tessera's tiling layout. Both scripts attempt to set `window.frameGeometry`, causing unpredictable window placement.

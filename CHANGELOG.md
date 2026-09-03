@@ -12,6 +12,16 @@ Tessera's identity is now explicit: Hyprland's dwindle behavior and keybinds,
 COSMIC's tiled/floating duality with OSD feedback, and Tessera's per-half
 window cap. See `ROADMAP.md` for the full development constitution.
 
+### Fixed
+- **KWin 6.4+ compatibility (crash fix)**: the Plasma 6.4+ tiling rewrite
+  changed `Tile.split()` semantics (it now creates two children *or a new
+  sibling* depending on the parent's state). Same-direction nested splits
+  corrupted the native tile tree, causing a relayout storm, broken
+  shortcuts and a KWin SIGSEGV. Layout application is now incremental
+  (Polonium 1.2.x's Plasma 6.4+ adaptation) with a perpendicularity
+  constraint on nested splits, and windows are attached via KWin's
+  `manage()`/`unmanage()` API.
+
 ### Added
 - **Preselect** (`TesseraPreselectLeft/Right/Above/Below`, unbound by
   default): choose the split direction and side for the NEXT window that
